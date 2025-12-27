@@ -107,7 +107,7 @@ class SandboxSecurityManager(private val context: Context) {
 
     fun isBiometricAvailable(): Boolean {
         val biometricManager = context.getSystemService(BiometricManager::class.java)
-        return biometricManager?.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
+        return biometricManager?.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
     }
     
     fun getBiometricType(): BiometricType {

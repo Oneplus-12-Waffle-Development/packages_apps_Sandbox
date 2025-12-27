@@ -24,6 +24,9 @@ import com.android.axion.sandbox.ui.PatternScreen
 import com.android.axion.sandbox.ui.SecuritySetupScreen
 import com.android.axion.sandbox.ui.SettingsScreen
 import com.android.axion.sandbox.ui.SandboxApp
+import android.hardware.biometrics.BiometricPrompt
+import android.hardware.biometrics.BiometricManager
+import android.os.CancellationSignal
 import com.android.axion.sandbox.ui.theme.SandboxTheme
 
 class MainActivity : ComponentActivity() {
@@ -42,10 +45,37 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    SandboxNavigation(securityManager)
+                    SandboxNavigation(
+                        securityManager = securityManager,
+                        onShowBiometricPrompt = { onSuccess ->
+                            showBiometricPrompt(onSuccess)
+                        }
+                    )
                 }
             }
         }
+    }
+    
+    private fun showBiometricPrompt(onSuccess: () -> Unit) {
+        val prompt = BiometricPrompt.Builder(this)
+            .setTitle("Unlock Private Apps")
+            .setNegativeButton("Cancel", mainExecutor) { _, _ -> }
+            .setAllowedAuthenticators(
+                BiometricManager.Authenticators.BIOMETRIC_STRONG or 
+                BiometricManager.Authenticators.BIOMETRIC_WEAK
+            )
+            .build()
+
+        prompt.authenticate(
+            CancellationSignal(),
+            mainExecutor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult?) {
+                    super.onAuthenticationSucceeded(result)
+                    onSuccess()
+                }
+            }
+        )
     }
 }
 
@@ -59,7 +89,11 @@ enum class SandboxScreen {
 }
 
 @Composable
-fun SandboxNavigation(securityManager: SandboxSecurityManager) {
+fun SandboxNavigation(
+    securityManager: SandboxSecurityManager,
+    onShowBiometricPrompt: (() -> Unit) -> Unit
+) {
+
     val lifecycleOwner = LocalLifecycleOwner.current
     
     var currentScreen by rememberSaveable { mutableStateOf(SandboxScreen.MAIN) }
@@ -149,6 +183,7 @@ fun SandboxNavigation(securityManager: SandboxSecurityManager) {
                         onPinEntered = { pin -> securityManager.verifyCredential(pin) },
                         biometricType = if (currentBiometricEnabled && securityManager.isBiometricAvailable()) 
                             securityManager.getBiometricType() else SandboxSecurityManager.BiometricType.NONE,
+                        onBiometricClick = { onShowBiometricPrompt(onUnlockSuccess) },
                         onBack = { currentScreen = SandboxScreen.MAIN }
                     )
                 }
@@ -159,6 +194,7 @@ fun SandboxNavigation(securityManager: SandboxSecurityManager) {
                         onPasswordEntered = { password -> securityManager.verifyCredential(password) },
                         biometricType = if (currentBiometricEnabled && securityManager.isBiometricAvailable()) 
                             securityManager.getBiometricType() else SandboxSecurityManager.BiometricType.NONE,
+                        onBiometricClick = { onShowBiometricPrompt(onUnlockSuccess) },
                         onBack = { currentScreen = SandboxScreen.MAIN }
                     )
                 }
@@ -169,6 +205,7 @@ fun SandboxNavigation(securityManager: SandboxSecurityManager) {
                         onPatternEntered = { pattern -> securityManager.verifyPattern(pattern) },
                         biometricType = if (currentBiometricEnabled && securityManager.isBiometricAvailable()) 
                             securityManager.getBiometricType() else SandboxSecurityManager.BiometricType.NONE,
+                        onBiometricClick = { onShowBiometricPrompt(onUnlockSuccess) },
                         onBack = { currentScreen = SandboxScreen.MAIN }
                     )
                 }

@@ -5,10 +5,12 @@ import android.app.AxSandboxManager
 import android.content.Context
 import android.content.Intent
 import android.hardware.biometrics.BiometricPrompt
+import android.hardware.biometrics.BiometricManager
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.PowerManager
 import android.os.Process
+import android.os.UserHandle
 import android.os.SystemClock
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -70,7 +72,7 @@ class AuthenticateActivity : ComponentActivity() {
         
         userId = intent.getIntExtra(EXTRA_USER_ID, 0)
             .takeIf { it != 0 } ?: intent.getIntExtra(EXTRA_LOCKED_UID, 0).let { 
-            android.os.UserHandle.getUserId(it) 
+            UserHandle.getUserId(it) 
         }
 
         isSystemUnlock = ACTION_SYSTEM_UNLOCK == intent.action
@@ -111,7 +113,10 @@ class AuthenticateActivity : ComponentActivity() {
             .setNegativeButton("Cancel", mainExecutor) { _, _ -> 
                 cancelAndFinish()
             }
-            .setAllowedAuthenticators(android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG)
+            .setAllowedAuthenticators(
+                BiometricManager.Authenticators.BIOMETRIC_STRONG or 
+                BiometricManager.Authenticators.BIOMETRIC_WEAK
+            )
             .build()
 
         prompt.authenticate(
