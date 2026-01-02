@@ -27,13 +27,9 @@ enum class PrivateSectionBehavior {
 
 class SandboxSecurityManager(private val context: Context) {
     
-    private val prefs: SharedPreferences = context.getSharedPreferences(
-        PREFS_NAME,
-        Context.MODE_PRIVATE
-    )
-    
     fun getSecurityType(): SecurityType {
-        val type = prefs.getString(KEY_SECURITY_TYPE, null) ?: return SecurityType.NONE
+        val type = Settings.Secure.getString(context.contentResolver, KEY_SECURITY_TYPE)
+            ?: return SecurityType.NONE
         return try {
             SecurityType.valueOf(type)
         } catch (e: IllegalArgumentException) {
@@ -42,7 +38,8 @@ class SandboxSecurityManager(private val context: Context) {
     }
     
     fun isSetup(): Boolean {
-        return getSecurityType() != SecurityType.NONE && prefs.contains(KEY_CREDENTIAL_HASH)
+        return getSecurityType() != SecurityType.NONE && 
+               Settings.Secure.getString(context.contentResolver, KEY_CREDENTIAL_HASH) != null
     }
     
     fun setPin(pin: String): Boolean {
@@ -54,11 +51,8 @@ class SandboxSecurityManager(private val context: Context) {
         }
         
         val hash = hashCredential(pin)
-        prefs.edit()
-            .putString(KEY_SECURITY_TYPE, SecurityType.PIN.name)
-            .putString(KEY_CREDENTIAL_HASH, hash)
-            .apply()
-        return true
+        return Settings.Secure.putString(context.contentResolver, KEY_SECURITY_TYPE, SecurityType.PIN.name) &&
+               Settings.Secure.putString(context.contentResolver, KEY_CREDENTIAL_HASH, hash)
     }
     
     fun setPassword(password: String): Boolean {
@@ -67,11 +61,8 @@ class SandboxSecurityManager(private val context: Context) {
         }
         
         val hash = hashCredential(password)
-        prefs.edit()
-            .putString(KEY_SECURITY_TYPE, SecurityType.PASSWORD.name)
-            .putString(KEY_CREDENTIAL_HASH, hash)
-            .apply()
-        return true
+        return Settings.Secure.putString(context.contentResolver, KEY_SECURITY_TYPE, SecurityType.PASSWORD.name) &&
+               Settings.Secure.putString(context.contentResolver, KEY_CREDENTIAL_HASH, hash)
     }
     
     fun setPattern(pattern: List<Int>): Boolean {
@@ -81,15 +72,13 @@ class SandboxSecurityManager(private val context: Context) {
         
         val patternString = pattern.joinToString(",")
         val hash = hashCredential(patternString)
-        prefs.edit()
-            .putString(KEY_SECURITY_TYPE, SecurityType.PATTERN.name)
-            .putString(KEY_CREDENTIAL_HASH, hash)
-            .apply()
-        return true
+        return Settings.Secure.putString(context.contentResolver, KEY_SECURITY_TYPE, SecurityType.PATTERN.name) &&
+               Settings.Secure.putString(context.contentResolver, KEY_CREDENTIAL_HASH, hash)
     }
     
     fun verifyCredential(credential: String): Boolean {
-        val storedHash = prefs.getString(KEY_CREDENTIAL_HASH, null) ?: return false
+        val storedHash = Settings.Secure.getString(context.contentResolver, KEY_CREDENTIAL_HASH)
+            ?: return false
         val inputHash = hashCredential(credential)
         return storedHash == inputHash
     }
@@ -122,18 +111,16 @@ class SandboxSecurityManager(private val context: Context) {
     }
     
     fun isBiometricEnabled(): Boolean {
-        return prefs.getBoolean(KEY_BIOMETRIC_ENABLED, false)
+        return Settings.Secure.getInt(context.contentResolver, KEY_BIOMETRIC_ENABLED, 0) == 1
     }
     
     fun setBiometricEnabled(enabled: Boolean) {
-        prefs.edit()
-            .putBoolean(KEY_BIOMETRIC_ENABLED, enabled)
-            .apply()
+        Settings.Secure.putInt(context.contentResolver, KEY_BIOMETRIC_ENABLED, if (enabled) 1 else 0)
     }
     
-    
     fun getPrivateSectionBehavior(): PrivateSectionBehavior {
-        val behavior = prefs.getString(KEY_PRIVATE_SECTION_BEHAVIOR, null) ?: return PrivateSectionBehavior.ON_LEAVE
+        val behavior = Settings.Secure.getString(context.contentResolver, KEY_PRIVATE_SECTION_BEHAVIOR)
+            ?: return PrivateSectionBehavior.ON_LEAVE
         return try {
             PrivateSectionBehavior.valueOf(behavior)
         } catch (e: IllegalArgumentException) {
@@ -142,29 +129,23 @@ class SandboxSecurityManager(private val context: Context) {
     }
 
     fun setPrivateSectionBehavior(behavior: PrivateSectionBehavior) {
-        prefs.edit()
-            .putString(KEY_PRIVATE_SECTION_BEHAVIOR, behavior.name)
-            .apply()
+        Settings.Secure.putString(context.contentResolver, KEY_PRIVATE_SECTION_BEHAVIOR, behavior.name)
     }
     
     fun getLockTimeout(): Int {
-        return prefs.getInt(KEY_LOCK_TIMEOUT, DEFAULT_TIMEOUT_SECONDS)
+        return Settings.Secure.getInt(context.contentResolver, KEY_LOCK_TIMEOUT, DEFAULT_TIMEOUT_SECONDS)
     }
     
     fun setLockTimeout(seconds: Int) {
-        prefs.edit()
-            .putInt(KEY_LOCK_TIMEOUT, seconds)
-            .apply()
+        Settings.Secure.putInt(context.contentResolver, KEY_LOCK_TIMEOUT, seconds)
     }
     
     fun getLastUnlockTime(): Long {
-        return prefs.getLong(KEY_LAST_UNLOCK_TIME, 0L)
+        return Settings.Secure.getLong(context.contentResolver, KEY_LAST_UNLOCK_TIME, 0L)
     }
     
     fun setLastUnlockTime(time: Long = System.currentTimeMillis()) {
-        prefs.edit()
-            .putLong(KEY_LAST_UNLOCK_TIME, time)
-            .apply()
+        Settings.Secure.putLong(context.contentResolver, KEY_LAST_UNLOCK_TIME, time)
     }
     
     fun isTimeoutExpired(): Boolean {
@@ -215,13 +196,12 @@ class SandboxSecurityManager(private val context: Context) {
     }
     
     companion object {
-        private const val PREFS_NAME = "sandbox_security"
-        private const val KEY_SECURITY_TYPE = "security_type"
-        private const val KEY_CREDENTIAL_HASH = "credential_hash"
-        private const val KEY_PRIVATE_SECTION_BEHAVIOR = "private_section_behavior"
-        private const val KEY_LOCK_TIMEOUT = "lock_timeout"
-        private const val KEY_LAST_UNLOCK_TIME = "last_unlock_time"
-        private const val KEY_BIOMETRIC_ENABLED = "biometric_enabled"
+        private const val KEY_SECURITY_TYPE = "sandbox_security_type"
+        private const val KEY_CREDENTIAL_HASH = "sandbox_credential_hash"
+        private const val KEY_PRIVATE_SECTION_BEHAVIOR = "sandbox_private_section_behavior"
+        private const val KEY_LOCK_TIMEOUT = "sandbox_lock_timeout"
+        private const val KEY_LAST_UNLOCK_TIME = "sandbox_last_unlock_time"
+        private const val KEY_BIOMETRIC_ENABLED = "sandbox_biometric_enabled"
         
         const val SETTING_LOCKED_APP_BEHAVIOR = "sandbox_locked_app_behavior"
         const val SETTING_LOCKED_APP_TIMEOUT = "sandbox_locked_app_timeout"
