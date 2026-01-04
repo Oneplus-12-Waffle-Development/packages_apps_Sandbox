@@ -44,7 +44,9 @@ fun LockScreen(
     confirmPin: String? = null,
     onBack: (() -> Unit)? = null,
     biometricType: SandboxSecurityManager.BiometricType = SandboxSecurityManager.BiometricType.NONE,
-    onBiometricClick: () -> Unit = {}
+    onBiometricClick: () -> Unit = {},
+    onForgotPassword: (() -> Unit)? = null,
+    isExiting: Boolean = false
 ) {
     var enteredPin by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
@@ -241,6 +243,17 @@ fun LockScreen(
                             )
                         }
                     }
+                }
+            }
+            
+            if (!isSetup && onForgotPassword != null) {
+                Spacer(modifier = Modifier.height(24.dp))
+                TextButton(onClick = onForgotPassword) {
+                    Text(
+                        text = "Forgot Password?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }

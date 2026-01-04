@@ -42,7 +42,9 @@ fun PasswordScreen(
     confirmPassword: String? = null,
     onBack: (() -> Unit)? = null,
     biometricType: SandboxSecurityManager.BiometricType = SandboxSecurityManager.BiometricType.NONE,
-    onBiometricClick: () -> Unit = {}
+    onBiometricClick: () -> Unit = {},
+    onForgotPassword: (() -> Unit)? = null,
+    isExiting: Boolean = false
 ) {
     var enteredPassword by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
@@ -209,6 +211,17 @@ fun PasswordScreen(
                         contentDescription = "Biometric Unlock",
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+            
+            if (!isSetup && onForgotPassword != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                TextButton(onClick = onForgotPassword) {
+                    Text(
+                        text = "Forgot Password?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }

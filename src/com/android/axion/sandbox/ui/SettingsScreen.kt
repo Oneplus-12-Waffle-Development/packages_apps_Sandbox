@@ -38,13 +38,16 @@ fun SettingsScreen(
     currentPrivateTimeout: Int,
     isBiometricAvailable: Boolean,
     isBiometricEnabled: Boolean,
+    hasSecurityQuestion: Boolean,
     onBackClick: () -> Unit,
     onChangeSecurityType: (SecurityType) -> Unit,
     onChangeLockedAppBehavior: (LockedAppBehavior) -> Unit,
     onChangeLockedAppTimeout: (Int) -> Unit,
     onChangePrivateBehavior: (PrivateSectionBehavior) -> Unit,
     onChangePrivateTimeout: (Int) -> Unit,
-    onChangeBiometricEnabled: (Boolean) -> Unit
+    onChangeBiometricEnabled: (Boolean) -> Unit,
+    onSetupRecovery: () -> Unit,
+    onForgotPassword: () -> Unit
 ) {
     var showLockedAppTimeoutDialog by remember { mutableStateOf(false) }
     var showPrivateTimeoutDialog by remember { mutableStateOf(false) }
@@ -174,6 +177,46 @@ fun SettingsScreen(
                             checked = isBiometricEnabled,
                             onCheckedChange = onChangeBiometricEnabled
                         )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+            
+            if (currentSecurityType != SecurityType.NONE) {
+                Text(
+                    text = "Recovery Options",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+                )
+                
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = SettingsShapes.card,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        if (hasSecurityQuestion) {
+                            SettingsItem(
+                                icon = Icons.Outlined.LockReset,
+                                title = "Forgot Password",
+                                subtitle = "Reset your password using security question",
+                                onClick = onForgotPassword
+                            )
+                        } else {
+                            SettingsItem(
+                                icon = Icons.Outlined.Help,
+                                title = "Set Up Security Question",
+                                subtitle = "Required for password recovery",
+                                onClick = onSetupRecovery
+                            )
+                        }
                     }
                 }
                 

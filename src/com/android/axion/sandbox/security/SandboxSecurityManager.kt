@@ -195,6 +195,35 @@ class SandboxSecurityManager(private val context: Context) {
         )
     }
     
+    fun setSecurityQuestion(question: String, answer: String) {
+        Settings.Secure.putString(context.contentResolver, KEY_SECURITY_QUESTION, question)
+        Settings.Secure.putString(context.contentResolver, KEY_SECURITY_ANSWER, hashCredential(answer.lowercase().trim()))
+    }
+    
+    fun getSecurityQuestion(): String? {
+        return Settings.Secure.getString(context.contentResolver, KEY_SECURITY_QUESTION)
+    }
+    
+    fun hasSecurityQuestion(): Boolean {
+        return getSecurityQuestion() != null && 
+               Settings.Secure.getString(context.contentResolver, KEY_SECURITY_ANSWER) != null
+    }
+    
+    fun verifySecurityAnswer(answer: String): Boolean {
+        val storedHash = Settings.Secure.getString(context.contentResolver, KEY_SECURITY_ANSWER)
+            ?: return false
+        val inputHash = hashCredential(answer.lowercase().trim())
+        return storedHash == inputHash
+    }
+    
+    fun clearCredentials() {
+        Settings.Secure.putString(context.contentResolver, KEY_SECURITY_TYPE, SecurityType.NONE.name)
+        Settings.Secure.putString(context.contentResolver, KEY_CREDENTIAL_HASH, null)
+        Settings.Secure.putString(context.contentResolver, KEY_SECURITY_QUESTION, null)
+        Settings.Secure.putString(context.contentResolver, KEY_SECURITY_ANSWER, null)
+        Settings.Secure.putInt(context.contentResolver, KEY_BIOMETRIC_ENABLED, 0)
+    }
+    
     companion object {
         private const val KEY_SECURITY_TYPE = "sandbox_security_type"
         private const val KEY_CREDENTIAL_HASH = "sandbox_credential_hash"
@@ -202,6 +231,8 @@ class SandboxSecurityManager(private val context: Context) {
         private const val KEY_LOCK_TIMEOUT = "sandbox_lock_timeout"
         private const val KEY_LAST_UNLOCK_TIME = "sandbox_last_unlock_time"
         private const val KEY_BIOMETRIC_ENABLED = "sandbox_biometric_enabled"
+        private const val KEY_SECURITY_QUESTION = "sandbox_security_question"
+        private const val KEY_SECURITY_ANSWER = "sandbox_security_answer"
         
         const val SETTING_LOCKED_APP_BEHAVIOR = "sandbox_locked_app_behavior"
         const val SETTING_LOCKED_APP_TIMEOUT = "sandbox_locked_app_timeout"
@@ -211,5 +242,13 @@ class SandboxSecurityManager(private val context: Context) {
         const val MIN_PASSWORD_LENGTH = 4
         const val MIN_PATTERN_LENGTH = 4
         const val DEFAULT_TIMEOUT_SECONDS = 30
+        
+        val SECURITY_QUESTIONS = listOf(
+            "What is your pet's name?",
+            "What city were you born in?",
+            "What is your favorite movie?",
+            "What is your mother's maiden name?",
+            "What was your first car?"
+        )
     }
 }

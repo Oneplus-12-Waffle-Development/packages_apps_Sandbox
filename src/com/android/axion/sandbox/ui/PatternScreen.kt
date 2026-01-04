@@ -40,7 +40,9 @@ fun PatternScreen(
     confirmPattern: List<Int>? = null,
     onBack: (() -> Unit)? = null,
     biometricType: SandboxSecurityManager.BiometricType = SandboxSecurityManager.BiometricType.NONE,
-    onBiometricClick: () -> Unit = {}
+    onBiometricClick: () -> Unit = {},
+    onForgotPassword: (() -> Unit)? = null,
+    isExiting: Boolean = false
 ) {
     var selectedDots by remember { mutableStateOf<List<Int>>(emptyList()) }
     var currentTouchPosition by remember { mutableStateOf<Offset?>(null) }
@@ -271,6 +273,17 @@ fun PatternScreen(
                         contentDescription = "Biometric Unlock",
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+            
+            if (!isSetup && onForgotPassword != null) {
+                Spacer(modifier = Modifier.height(24.dp))
+                TextButton(onClick = onForgotPassword) {
+                    Text(
+                        text = "Forgot Password?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
