@@ -206,6 +206,46 @@ fun SandboxApp(
         }
     }
     
+    var notificationCount by remember { mutableStateOf(0) }
+    
+    DisposableEffect(Unit) {
+        val sandboxManager = context.getSystemService(Context.AX_SANDBOX_SERVICE) as? android.app.AxSandboxManager
+        
+        val listener = object : IHiddenNotificationListener.Stub() {
+            override fun onHiddenNotificationPosted(info: HiddenNotificationInfo) {
+                scope.launch(Dispatchers.Main) {
+                    notificationCount++
+                }
+            }
+            
+            override fun onHiddenNotificationRemoved(key: String) {
+                scope.launch(Dispatchers.Main) {
+                    if (notificationCount > 0) notificationCount--
+                }
+            }
+        }
+        
+        try {
+            sandboxManager?.registerHiddenNotificationListener(listener)
+            scope.launch(Dispatchers.IO) {
+                val count = sandboxManager?.hiddenNotifications?.size ?: 0
+                withContext(Dispatchers.Main) {
+                    notificationCount = count
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to register notification listener", e)
+        }
+        
+        onDispose {
+            try {
+                sandboxManager?.unregisterHiddenNotificationListener(listener)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to unregister notification listener", e)
+            }
+        }
+    }
+    
     if (selectedApp != null) {
         AppDetailScreen(
             app = selectedApp!!,
@@ -271,7 +311,7 @@ fun SandboxApp(
                     onNotificationsClick = {
                         scope.launch { pagerState.animateScrollToPage(2) }
                     },
-                    notificationCount = 0, // TODO: Connect with hidden notification count
+                    notificationCount = notificationCount,
                     onSettingsClick = onSettingsClick
                 )
                 
@@ -1750,13 +1790,20 @@ fun ExpressiveNotificationItem(
                 verticalAlignment = Alignment.Top
             ) {
                 if (notification.icon != null) {
-                    Image(
-                        painter = BitmapPainter(notification.icon.toBitmap().asImageBitmap()),
-                        contentDescription = null,
+                    Box(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(ExpressiveShapes.small)
-                    )
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = BitmapPainter(notification.icon.toBitmap().asImageBitmap()),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 } else {
                     Box(
                         modifier = Modifier
