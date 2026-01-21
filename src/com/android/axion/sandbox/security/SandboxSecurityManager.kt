@@ -143,12 +143,20 @@ class SandboxSecurityManager(private val context: Context) {
         Settings.Secure.putString(context.contentResolver, KEY_PRIVATE_SECTION_BEHAVIOR, behavior.name)
     }
     
-    fun getLockTimeout(): Int {
-        return Settings.Secure.getInt(context.contentResolver, KEY_LOCK_TIMEOUT, DEFAULT_TIMEOUT_SECONDS)
+    fun getPrivateSectionTimeout(): Int {
+        return Settings.Secure.getInt(context.contentResolver, KEY_PRIVATE_SECTION_TIMEOUT, DEFAULT_TIMEOUT_SECONDS)
     }
     
-    fun setLockTimeout(seconds: Int) {
-        Settings.Secure.putInt(context.contentResolver, KEY_LOCK_TIMEOUT, seconds)
+    fun setPrivateSectionTimeout(seconds: Int) {
+        Settings.Secure.putInt(context.contentResolver, KEY_PRIVATE_SECTION_TIMEOUT, seconds)
+    }
+
+    fun getLockedAppTimeout(): Int {
+        return Settings.Secure.getInt(context.contentResolver, KEY_LOCKED_APP_TIMEOUT, DEFAULT_TIMEOUT_SECONDS)
+    }
+    
+    fun setLockedAppTimeout(seconds: Int) {
+        Settings.Secure.putInt(context.contentResolver, KEY_LOCKED_APP_TIMEOUT, seconds)
     }
     
     fun getLastUnlockTime(): Long {
@@ -162,7 +170,7 @@ class SandboxSecurityManager(private val context: Context) {
     fun isTimeoutExpired(): Boolean {
         if (getPrivateSectionBehavior() != PrivateSectionBehavior.TIMEOUT) return false
         val elapsed = System.currentTimeMillis() - getLastUnlockTime()
-        return elapsed > getLockTimeout() * 1000L
+        return elapsed > getPrivateSectionTimeout() * 1000L
     }
     
     private fun hashCredential(credential: String): String {
@@ -188,21 +196,6 @@ class SandboxSecurityManager(private val context: Context) {
             context.contentResolver,
             SETTING_LOCKED_APP_BEHAVIOR,
             behavior.ordinal
-        )
-    }
-    
-    fun getLockedAppTimeout(): Int {
-        return Settings.Secure.getInt(
-            context.contentResolver,
-            SETTING_LOCKED_APP_TIMEOUT,
-            DEFAULT_TIMEOUT_SECONDS)
-    }
-    
-    fun setLockedAppTimeout(seconds: Int) {
-        Settings.Secure.putInt(
-            context.contentResolver,
-            SETTING_LOCKED_APP_TIMEOUT,
-            seconds
         )
     }
     
@@ -239,15 +232,15 @@ class SandboxSecurityManager(private val context: Context) {
         private const val KEY_SECURITY_TYPE = "sandbox_security_type"
         private const val KEY_CREDENTIAL_HASH = "sandbox_credential_hash"
         private const val KEY_PRIVATE_SECTION_BEHAVIOR = "sandbox_private_section_behavior"
-        private const val KEY_LOCK_TIMEOUT = "sandbox_lock_timeout"
+        private const val KEY_PRIVATE_SECTION_TIMEOUT = "sandbox_lock_timeout"
+        private const val KEY_LOCKED_APP_TIMEOUT = "sandbox_locked_app_timeout"
         private const val KEY_LAST_UNLOCK_TIME = "sandbox_last_unlock_time"
         private const val KEY_BIOMETRIC_ENABLED = "sandbox_biometric_enabled"
         private const val KEY_PREFER_BIOMETRIC = "sandbox_prefer_biometric"
         private const val KEY_SECURITY_QUESTION = "sandbox_security_question"
         private const val KEY_SECURITY_ANSWER = "sandbox_security_answer"
-        
         const val SETTING_LOCKED_APP_BEHAVIOR = "sandbox_locked_app_behavior"
-        const val SETTING_LOCKED_APP_TIMEOUT = "sandbox_locked_app_timeout"
+        
         
         const val MIN_PIN_LENGTH = 4
         const val MAX_PIN_LENGTH = 4

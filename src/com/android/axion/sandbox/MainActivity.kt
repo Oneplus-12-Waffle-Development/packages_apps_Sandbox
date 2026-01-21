@@ -113,14 +113,14 @@ fun SandboxNavigation(
     
     var isPrivateAreaExpanded by rememberSaveable { mutableStateOf(false) }
     
-    var currentLockedAppBehavior by remember { mutableStateOf(securityManager.getLockedAppBehavior()) }
-    var currentLockedAppTimeout by remember { mutableStateOf(securityManager.getLockedAppTimeout()) }
-    var currentPrivateBehavior by remember { mutableStateOf(securityManager.getPrivateSectionBehavior()) }
-    var currentPrivateTimeout by remember { mutableStateOf(securityManager.getLockTimeout()) }
-    var currentSecurityType by remember { mutableStateOf(securityManager.getSecurityType()) }
-    var currentBiometricEnabled by remember { mutableStateOf(securityManager.isBiometricEnabled()) }
-    var currentPreferBiometric by remember { mutableStateOf(securityManager.isPreferBiometric()) }
-    var hasSecurityQuestion by remember { mutableStateOf(securityManager.hasSecurityQuestion()) }
+    var currentLockedAppBehavior by remember { mutableStateOf<LockedAppBehavior>(securityManager.getLockedAppBehavior()) }
+    var currentLockedAppTimeout by remember { mutableStateOf<Int>(securityManager.getLockedAppTimeout()) }
+    var currentPrivateBehavior by remember { mutableStateOf<PrivateSectionBehavior>(securityManager.getPrivateSectionBehavior()) }
+    var currentPrivateTimeout by remember { mutableStateOf<Int>(securityManager.getPrivateSectionTimeout()) }
+    var currentSecurityType by remember { mutableStateOf<SecurityType>(securityManager.getSecurityType()) }
+    var currentBiometricEnabled by remember { mutableStateOf<Boolean>(securityManager.isBiometricEnabled()) }
+    var currentPreferBiometric by remember { mutableStateOf<Boolean>(securityManager.isPreferBiometric()) }
+    var hasSecurityQuestion by remember { mutableStateOf<Boolean>(securityManager.hasSecurityQuestion()) }
     var forgotPasswordReturnScreen by rememberSaveable { mutableStateOf(SandboxScreen.UNLOCK_PRIVATE) }
     
     val currentScreenState = rememberUpdatedState(currentScreen)
@@ -422,7 +422,7 @@ fun SandboxNavigation(
                     }
                 },
                 onChangePrivateTimeout = { timeout ->
-                    securityManager.setLockTimeout(timeout)
+                    securityManager.setPrivateSectionTimeout(timeout)
                     currentPrivateTimeout = timeout
                 },
                 onChangeBiometricEnabled = { enabled ->
