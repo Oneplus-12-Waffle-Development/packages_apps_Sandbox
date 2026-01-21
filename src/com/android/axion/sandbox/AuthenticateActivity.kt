@@ -100,6 +100,7 @@ class AuthenticateActivity : ComponentActivity() {
                         onSuccess = { unlockAndFinish() },
                         onCancel = { cancelAndFinish() },
                         biometricType = biometricType,
+                        isPreferBiometric = securityManager.isPreferBiometric(),
                         onBiometricClick = { showBiometricPrompt() }
                     )
                 }
@@ -108,10 +109,16 @@ class AuthenticateActivity : ComponentActivity() {
     }
     
     private fun showBiometricPrompt() {
+        val negativeButtonText = when (securityManager.getSecurityType()) {
+            SecurityType.PIN -> "Use PIN"
+            SecurityType.PASSWORD -> "Use Password"
+            SecurityType.PATTERN -> "Use Pattern"
+            else -> "Cancel"
+        }
+
         val prompt = BiometricPrompt.Builder(this)
             .setTitle("Unlock ${appLabel ?: "App"}")
-            .setNegativeButton("Cancel", mainExecutor) { _, _ -> 
-                cancelAndFinish()
+            .setNegativeButton(negativeButtonText, mainExecutor) { _, _ -> 
             }
             .setAllowedAuthenticators(
                 BiometricManager.Authenticators.BIOMETRIC_STRONG or 
@@ -130,7 +137,11 @@ class AuthenticateActivity : ComponentActivity() {
                 
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence?) {
                      super.onAuthenticationError(errorCode, errString)
-                     cancelAndFinish()
+                     if (errorCode == BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED || 
+                         errorCode == BiometricPrompt.BIOMETRIC_ERROR_NEGATIVE_BUTTON) {
+                     } else {
+                         cancelAndFinish()
+                     }
                 }
             }
         )
@@ -257,8 +268,15 @@ fun AuthenticateScreen(
     onSuccess: () -> Unit,
     onCancel: () -> Unit,
     biometricType: SandboxSecurityManager.BiometricType = SandboxSecurityManager.BiometricType.NONE,
+    isPreferBiometric: Boolean = false,
     onBiometricClick: () -> Unit = {}
 ) {
+    LaunchedEffect(biometricType) {
+        if (biometricType != SandboxSecurityManager.BiometricType.NONE && isPreferBiometric) {
+            onBiometricClick()
+        }
+    }
+
     val securityType = securityManager.getSecurityType()
     val promptText = "Enter your Sandbox credential to unlock $appLabel"
     

@@ -38,6 +38,7 @@ fun SettingsScreen(
     currentPrivateTimeout: Int,
     isBiometricAvailable: Boolean,
     isBiometricEnabled: Boolean,
+    isPreferBiometric: Boolean,
     hasSecurityQuestion: Boolean,
     onBackClick: () -> Unit,
     onChangeSecurityType: (SecurityType) -> Unit,
@@ -46,6 +47,7 @@ fun SettingsScreen(
     onChangePrivateBehavior: (PrivateSectionBehavior) -> Unit,
     onChangePrivateTimeout: (Int) -> Unit,
     onChangeBiometricEnabled: (Boolean) -> Unit,
+    onChangePreferBiometric: (Boolean) -> Unit,
     onSetupRecovery: () -> Unit,
     onForgotPassword: () -> Unit
 ) {
@@ -177,6 +179,21 @@ fun SettingsScreen(
                             checked = isBiometricEnabled,
                             onCheckedChange = onChangeBiometricEnabled
                         )
+
+                        if (isBiometricEnabled) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            )
+
+                            SettingsSwitchItem(
+                                icon = Icons.Outlined.AutoMode,
+                                title = "Auto-show Biometric Prompt",
+                                subtitle = "Automatically show biometric prompt when opening locked apps",
+                                checked = isPreferBiometric,
+                                onCheckedChange = onChangePreferBiometric
+                            )
+                        }
                     }
                 }
                 

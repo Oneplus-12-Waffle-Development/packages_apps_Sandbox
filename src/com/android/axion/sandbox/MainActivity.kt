@@ -119,6 +119,7 @@ fun SandboxNavigation(
     var currentPrivateTimeout by remember { mutableStateOf(securityManager.getLockTimeout()) }
     var currentSecurityType by remember { mutableStateOf(securityManager.getSecurityType()) }
     var currentBiometricEnabled by remember { mutableStateOf(securityManager.isBiometricEnabled()) }
+    var currentPreferBiometric by remember { mutableStateOf(securityManager.isPreferBiometric()) }
     var hasSecurityQuestion by remember { mutableStateOf(securityManager.hasSecurityQuestion()) }
     var forgotPasswordReturnScreen by rememberSaveable { mutableStateOf(SandboxScreen.UNLOCK_PRIVATE) }
     
@@ -186,6 +187,12 @@ fun SandboxNavigation(
             
             BackHandler {
                 currentScreen = SandboxScreen.MAIN
+            }
+            
+            LaunchedEffect(Unit) {
+                if (currentBiometricEnabled && securityManager.isBiometricAvailable() && currentPreferBiometric) {
+                    onShowBiometricPrompt(onUnlockSuccess)
+                }
             }
             
             when (securityType) {
@@ -386,6 +393,7 @@ fun SandboxNavigation(
                 currentPrivateTimeout = currentPrivateTimeout,
                 isBiometricAvailable = securityManager.isBiometricAvailable(),
                 isBiometricEnabled = currentBiometricEnabled,
+                isPreferBiometric = currentPreferBiometric,
                 onBackClick = { currentScreen = SandboxScreen.MAIN },
                 onChangeSecurityType = { type ->
                     if (securityManager.isSetup()) {
@@ -420,6 +428,13 @@ fun SandboxNavigation(
                 onChangeBiometricEnabled = { enabled ->
                     securityManager.setBiometricEnabled(enabled)
                     currentBiometricEnabled = enabled
+                    if (!enabled) {
+                        currentPreferBiometric = false
+                    }
+                },
+                onChangePreferBiometric = { preferred ->
+                    securityManager.setPreferBiometric(preferred)
+                    currentPreferBiometric = preferred
                 },
                 hasSecurityQuestion = hasSecurityQuestion,
                 onSetupRecovery = {
