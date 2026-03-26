@@ -1,36 +1,67 @@
+/*
+ * Copyright (C) 2025-2026 AxionOS Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.android.axion.sandbox.ui
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.android.axion.sandbox.R
 import com.android.axion.sandbox.security.SandboxSecurityManager
-import kotlinx.coroutines.delay
 import kotlin.math.pow
 import kotlin.math.sqrt
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PatternScreen(
     isSetup: Boolean = false,
@@ -50,18 +81,19 @@ fun PatternScreen(
     var errorMessage by remember { mutableStateOf("") }
     var dotPositions by remember { mutableStateOf<Map<Int, Offset>>(emptyMap()) }
     val haptic = LocalHapticFeedback.current
-    
+    val motionScheme = MaterialTheme.motionScheme
+    val errorMismatch = stringResource(R.string.pattern_error_mismatch)
+    val errorIncorrect = stringResource(R.string.pattern_error_incorrect)
+    val errorTooShort = stringResource(R.string.pattern_error_too_short)
+
     LaunchedEffect(confirmPattern) {
         selectedDots = emptyList()
         isError = false
     }
-    
+
     val shakeOffset by animateFloatAsState(
         targetValue = if (isError) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioHighBouncy,
-            stiffness = Spring.StiffnessHigh
-        ),
+        animationSpec = motionScheme.fastSpatialSpec(),
         label = "shake",
         finishedListener = {
             if (isError) {
@@ -71,11 +103,11 @@ fun PatternScreen(
             }
         }
     )
-    
+
     val shakeTranslation = if (isError) {
         kotlin.math.sin(shakeOffset * 4 * Math.PI.toFloat()) * 16f
     } else 0f
-    
+
     fun submitPattern() {
         if (selectedDots.size >= 4) {
             val success = onPatternEntered(selectedDots)
@@ -83,39 +115,30 @@ fun PatternScreen(
                 onUnlock()
             } else {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                errorMessage = if (isSetup && confirmPattern != null) "Patterns don't match" else "Wrong pattern"
+                errorMessage = if (isSetup && confirmPattern != null) errorMismatch else errorIncorrect
                 isError = true
             }
         } else if (selectedDots.isNotEmpty()) {
-            errorMessage = "Connect at least 4 dots"
+            errorMessage = errorTooShort
             isError = true
         }
     }
-    
+
     val density = LocalDensity.current
     val dotRadius = with(density) { 12.dp.toPx() }
     val touchRadius = with(density) { 40.dp.toPx() }
-    
+
     val errorColor = MaterialTheme.colorScheme.error
     val lineColor = if (isError) errorColor else MaterialTheme.colorScheme.primary
     val dotColor = MaterialTheme.colorScheme.primary
     val dotInactiveColor = MaterialTheme.colorScheme.outlineVariant
-    
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.surface,
-                        MaterialTheme.colorScheme.surfaceContainerLow
-                    )
-                )
-            )
+            .background(MaterialTheme.colorScheme.surfaceContainer)
     ) {
-
-
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -124,27 +147,28 @@ fun PatternScreen(
         ) {
             Text(
                 text = if (isSetup) {
-                    if (confirmPattern == null) "Create Pattern" else "Confirm Pattern"
-                } else "Draw Pattern",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
+                    if (confirmPattern == null) stringResource(R.string.pattern_title_create)
+                    else stringResource(R.string.pattern_title_confirm)
+                } else stringResource(R.string.pattern_title_enter),
+                style = MaterialTheme.typography.headlineMediumEmphasized,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = promptText ?: if (isSetup) {
-                    if (confirmPattern == null) "Connect at least 4 dots" else "Draw your pattern again"
-                } else "Draw your pattern to unlock private apps",
+                    if (confirmPattern == null) stringResource(R.string.pattern_prompt_create)
+                    else stringResource(R.string.pattern_prompt_confirm)
+                } else stringResource(R.string.pattern_prompt_unlock),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Text(
                 text = if (isError) errorMessage else "",
                 style = MaterialTheme.typography.bodySmall,
@@ -152,9 +176,9 @@ fun PatternScreen(
                 modifier = Modifier.height(20.dp),
                 textAlign = TextAlign.Center
             )
-            
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             Box(
                 modifier = Modifier
                     .size(280.dp)
@@ -166,7 +190,7 @@ fun PatternScreen(
                                 errorMessage = ""
                                 selectedDots = emptyList()
                                 currentTouchPosition = offset
-                                
+
                                 val hitDot = findHitDot(offset, dotPositions, touchRadius)
                                 if (hitDot != null && !selectedDots.contains(hitDot)) {
                                     selectedDots = listOf(hitDot)
@@ -175,7 +199,7 @@ fun PatternScreen(
                             },
                             onDrag = { change, _ ->
                                 currentTouchPosition = change.position
-                                
+
                                 val hitDot = findHitDot(change.position, dotPositions, touchRadius)
                                 if (hitDot != null && !selectedDots.contains(hitDot)) {
                                     selectedDots = selectedDots + hitDot
@@ -196,7 +220,7 @@ fun PatternScreen(
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val gridSize = 3
                     val cellSize = size.width / gridSize
-                    
+
                     val positions = mutableMapOf<Int, Offset>()
                     for (row in 0 until gridSize) {
                         for (col in 0 until gridSize) {
@@ -209,7 +233,7 @@ fun PatternScreen(
                         }
                     }
                     dotPositions = positions
-                    
+
                     if (selectedDots.size > 1) {
                         for (i in 0 until selectedDots.size - 1) {
                             val from = positions[selectedDots[i]]!!
@@ -223,7 +247,7 @@ fun PatternScreen(
                             )
                         }
                     }
-                    
+
                     if (selectedDots.isNotEmpty() && currentTouchPosition != null) {
                         val lastDot = positions[selectedDots.last()]!!
                         drawLine(
@@ -234,7 +258,7 @@ fun PatternScreen(
                             cap = StrokeCap.Round
                         )
                     }
-                    
+
                     for ((index, center) in positions) {
                         val isSelected = selectedDots.contains(index)
                         val color = when {
@@ -242,13 +266,13 @@ fun PatternScreen(
                             isSelected -> dotColor
                             else -> dotInactiveColor
                         }
-                        
+
                         drawCircle(
                             color = color.copy(alpha = if (isSelected) 0.3f else 0.2f),
                             radius = dotRadius * 2.5f,
                             center = center
                         )
-                        
+
                         drawCircle(
                             color = color,
                             radius = if (isSelected) dotRadius * 1.3f else dotRadius,
@@ -257,7 +281,7 @@ fun PatternScreen(
                     }
                 }
             }
-            
+
             if (!isSetup && biometricType != SandboxSecurityManager.BiometricType.NONE) {
                 Spacer(modifier = Modifier.height(24.dp))
                 IconButton(
@@ -265,23 +289,23 @@ fun PatternScreen(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                        .background(MaterialTheme.colorScheme.primaryContainer)
                 ) {
                     Icon(
-                        imageVector = if (biometricType == SandboxSecurityManager.BiometricType.FACE) 
+                        imageVector = if (biometricType == SandboxSecurityManager.BiometricType.FACE)
                             Icons.Filled.Face else Icons.Filled.Fingerprint,
-                        contentDescription = "Biometric Unlock",
+                        contentDescription = stringResource(R.string.action_biometric_unlock),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(28.dp)
                     )
                 }
             }
-            
+
             if (!isSetup && onForgotPassword != null) {
                 Spacer(modifier = Modifier.height(24.dp))
                 TextButton(onClick = onForgotPassword) {
                     Text(
-                        text = "Forgot Password?",
+                        text = stringResource(R.string.action_forgot_password),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )

@@ -1,17 +1,32 @@
+/*
+ * Copyright (C) 2025-2026 AxionOS Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.android.axion.sandbox
 
 import android.app.Activity
 import android.app.AxSandboxManager
 import android.content.Context
 import android.content.Intent
-import android.hardware.biometrics.BiometricPrompt
 import android.hardware.biometrics.BiometricManager
+import android.hardware.biometrics.BiometricPrompt
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.PowerManager
 import android.os.Process
-import android.os.UserHandle
 import android.os.SystemClock
+import android.os.UserHandle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
@@ -20,7 +35,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import com.android.axion.sandbox.security.SecurityType
 import com.android.axion.sandbox.security.SandboxSecurityManager
@@ -30,7 +46,7 @@ import com.android.axion.sandbox.ui.PatternScreen
 import com.android.axion.sandbox.ui.theme.SandboxTheme
 
 class AuthenticateActivity : ComponentActivity() {
-    
+
     private lateinit var securityManager: SandboxSecurityManager
     private var packageName: String? = null
     private var appLabel: String? = null
@@ -40,12 +56,12 @@ class AuthenticateActivity : ComponentActivity() {
     private var resultIntent: Intent? = null
     private var isAuthSuccess = false
     private var failedTime: Long = 0
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         setupWindowForOverlay()
-        
+
         enableEdgeToEdge()
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -55,12 +71,12 @@ class AuthenticateActivity : ComponentActivity() {
         })
 
         resultIntent = Intent()
-        
+
         securityManager = SandboxSecurityManager(this)
-        
+
         packageName = intent.getStringExtra(EXTRA_PACKAGE_NAME)
             ?: intent.getStringExtra(EXTRA_LOCKED_PACKAGE)
-        
+
         appLabel = intent.getStringExtra(EXTRA_APP_LABEL) ?: packageName?.let { pkg ->
             try {
                 val pm = applicationContext.packageManager
@@ -68,15 +84,15 @@ class AuthenticateActivity : ComponentActivity() {
             } catch (e: Exception) {
                 pkg
             }
-        } ?: "App"
-        
+        } ?: getString(R.string.app_name)
+
         userId = intent.getIntExtra(EXTRA_USER_ID, 0)
-            .takeIf { it != 0 } ?: intent.getIntExtra(EXTRA_LOCKED_UID, 0).let { 
-            UserHandle.getUserId(it) 
+            .takeIf { it != 0 } ?: intent.getIntExtra(EXTRA_LOCKED_UID, 0).let {
+            UserHandle.getUserId(it)
         }
 
         isSystemUnlock = ACTION_SYSTEM_UNLOCK == intent.action
-        
+
         if (!securityManager.isSetup()) {
             unlockAndFinish()
             return
@@ -87,16 +103,16 @@ class AuthenticateActivity : ComponentActivity() {
         } else {
              SandboxSecurityManager.BiometricType.NONE
         }
-        
+
         setContent {
             SandboxTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = MaterialTheme.colorScheme.surfaceContainer
                 ) {
                     AuthenticateScreen(
                         securityManager = securityManager,
-                        appLabel = appLabel ?: "App",
+                        appLabel = appLabel ?: getString(R.string.app_name),
                         onSuccess = { unlockAndFinish() },
                         onCancel = { cancelAndFinish() },
                         biometricType = biometricType,
@@ -107,21 +123,20 @@ class AuthenticateActivity : ComponentActivity() {
             }
         }
     }
-    
+
     private fun showBiometricPrompt() {
         val negativeButtonText = when (securityManager.getSecurityType()) {
-            SecurityType.PIN -> "Use PIN"
-            SecurityType.PASSWORD -> "Use Password"
-            SecurityType.PATTERN -> "Use Pattern"
-            else -> "Cancel"
+            SecurityType.PIN -> getString(R.string.biometric_use_pin)
+            SecurityType.PASSWORD -> getString(R.string.biometric_use_password)
+            SecurityType.PATTERN -> getString(R.string.biometric_use_pattern)
+            else -> getString(R.string.action_cancel)
         }
 
         val prompt = BiometricPrompt.Builder(this)
-            .setTitle("Unlock ${appLabel ?: "App"}")
-            .setNegativeButton(negativeButtonText, mainExecutor) { _, _ -> 
-            }
+            .setTitle(getString(R.string.auth_title_unlock, appLabel ?: getString(R.string.app_name)))
+            .setNegativeButton(negativeButtonText, mainExecutor) { _, _ -> }
             .setAllowedAuthenticators(
-                BiometricManager.Authenticators.BIOMETRIC_STRONG or 
+                BiometricManager.Authenticators.BIOMETRIC_STRONG or
                 BiometricManager.Authenticators.BIOMETRIC_WEAK
             )
             .build()
@@ -134,10 +149,10 @@ class AuthenticateActivity : ComponentActivity() {
                     super.onAuthenticationSucceeded(result)
                     unlockAndFinish()
                 }
-                
+
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence?) {
                      super.onAuthenticationError(errorCode, errString)
-                     if (errorCode == BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED || 
+                     if (errorCode == BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED ||
                          errorCode == BiometricPrompt.BIOMETRIC_ERROR_NEGATIVE_BUTTON) {
                      } else {
                          cancelAndFinish()
@@ -146,22 +161,22 @@ class AuthenticateActivity : ComponentActivity() {
             }
         )
     }
-    
+
     private fun setupWindowForOverlay() {
         window?.apply {
             setType(WindowManager.LayoutParams.TYPE_STATUS_BAR_SUB_PANEL)
-            
+
             addFlags(
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
                 WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
                 WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
             )
-            
+
             addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
-            
+
             attributes = attributes?.apply {
-                privateFlags = privateFlags or 
+                privateFlags = privateFlags or
                     WindowManager.LayoutParams.SYSTEM_FLAG_SHOW_FOR_ALL_USERS
             }
         }
@@ -178,41 +193,41 @@ class AuthenticateActivity : ComponentActivity() {
         }
         setResult(Activity.RESULT_OK, resultIntent)
         isAuthSuccess = true
-        
+
         finish()
         Process.killProcess(Process.myPid())
     }
-    
+
     private fun cancelAndFinish() {
         resultIntent?.apply {
             putExtra(EXTRA_LOCKED_PACKAGE, packageName)
             putExtra(EXTRA_LOCKED_UID, userId)
         }
         setResult(Activity.RESULT_CANCELED, resultIntent)
-        
+
         failedTime = SystemClock.elapsedRealtime()
-        
+
         moveTaskToBack(true)
-        
+
         val homeIntent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_HOME)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         startActivity(homeIntent)
-        
+
         finishAndCleanup()
     }
-    
+
     override fun onPause() {
         super.onPause()
         finishAndCleanup()
     }
-    
+
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         finishAndCleanup()
     }
-    
+
     private fun finishAndCleanup() {
         finish()
         Process.killProcess(Process.myPid())
@@ -220,7 +235,7 @@ class AuthenticateActivity : ComponentActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        
+
         if (hasFocus && isAuthSuccess) {
             finishAndCleanup()
             isAuthSuccess = false
@@ -229,7 +244,7 @@ class AuthenticateActivity : ComponentActivity() {
 
         val timeSinceFailed = SystemClock.elapsedRealtime() - failedTime
         val isMultiWindow = WindowModeUtil.isAppInMultiWindowMode()
-        val isFreeform = WindowModeUtil.isAppInFreeformDisplay(this)
+        val isFreeform = WindowModeUtil.isAppInFreeformMode()
 
         if (hasFocus && !isMultiWindow && !isFreeform) {
             if (timeSinceFailed in 1..280 && isScreenOn()) {
@@ -242,20 +257,20 @@ class AuthenticateActivity : ComponentActivity() {
             }
         }
     }
-    
+
     private fun isScreenOn(): Boolean {
         val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
         return powerManager?.isInteractive ?: false
     }
-    
+
     companion object {
         const val EXTRA_PACKAGE_NAME = "package_name"
         const val EXTRA_APP_LABEL = "app_label"
         const val EXTRA_USER_ID = "user_id"
-        
+
         const val EXTRA_LOCKED_PACKAGE = "LOCKED_PACKAGE"
         const val EXTRA_LOCKED_UID = "LOCKED_UID"
-        
+
         const val ACTION_AUTHENTICATE = "com.android.axion.sandbox.action.AUTHENTICATE"
         const val ACTION_SYSTEM_UNLOCK = "com.android.axion.sandbox.action.SYSTEM_UNLOCK"
     }
@@ -278,13 +293,11 @@ fun AuthenticateScreen(
     }
 
     val securityType = securityManager.getSecurityType()
-    val promptText = "Enter your Sandbox credential to unlock $appLabel"
-    
+
     when (securityType) {
         SecurityType.PIN -> {
             LockScreen(
                 isSetup = false,
-                promptText = promptText,
                 onUnlock = onSuccess,
                 onPinEntered = { pin -> securityManager.verifyCredential(pin) },
                 onBack = onCancel,
@@ -295,7 +308,6 @@ fun AuthenticateScreen(
         SecurityType.PASSWORD -> {
             PasswordScreen(
                 isSetup = false,
-                promptText = promptText,
                 onUnlock = onSuccess,
                 onPasswordEntered = { password -> securityManager.verifyCredential(password) },
                 onBack = onCancel,
@@ -306,7 +318,6 @@ fun AuthenticateScreen(
         SecurityType.PATTERN -> {
             PatternScreen(
                 isSetup = false,
-                promptText = promptText,
                 onUnlock = onSuccess,
                 onPatternEntered = { pattern -> securityManager.verifyPattern(pattern) },
                 onBack = onCancel,

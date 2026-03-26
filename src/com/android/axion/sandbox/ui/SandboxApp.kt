@@ -1,81 +1,130 @@
+/*
+ * Copyright (C) 2025-2026 AxionOS Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.android.axion.sandbox.ui
 
 import android.content.Context
-import android.database.ContentObserver
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
-import android.os.Handler
-import android.os.Looper
-import android.provider.Settings
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Apps
-import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledIconToggleButton
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.android.axion.compose.preferences.SettingsType
+import com.android.axion.compose.preferences.rememberSettingsFlow
+import com.android.axion.sandbox.R
 import com.android.internal.app.IHiddenNotificationListener
 import com.android.internal.app.HiddenNotificationInfo
 import java.text.SimpleDateFormat
@@ -86,14 +135,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val TAG = "SandboxApp"
-
-private object ExpressiveShapes {
-    val small = RoundedCornerShape(12.dp)
-    val medium = RoundedCornerShape(20.dp)
-    val large = RoundedCornerShape(28.dp)
-    val extraLarge = RoundedCornerShape(32.dp)
-    val full = CircleShape
-}
+private const val SANDBOX_CONFIG_KEY = "sandbox_config"
 
 data class AppInfo(
     val packageName: String,
@@ -102,11 +144,10 @@ data class AppInfo(
     val uid: Int,
     val isLocked: Boolean,
     val isHidden: Boolean,
-    val isSandboxed: Boolean,
-    val isDevOptionsHidden: Boolean
+    val isSandboxed: Boolean
 )
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SandboxApp(
     onSettingsClick: () -> Unit = {},
@@ -122,23 +163,24 @@ fun SandboxApp(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
-    
+    val motionScheme = MaterialTheme.motionScheme
+
     var apps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedApp by remember { mutableStateOf<AppInfo?>(null) }
-    
+
     var savedTabIndex by rememberSaveable { mutableStateOf(0) }
-    
+
     val pagerState = rememberPagerState(
         initialPage = savedTabIndex,
         pageCount = { 2 }
     )
-    
+
     LaunchedEffect(pagerState.currentPage) {
         savedTabIndex = pagerState.currentPage
     }
-    
+
     val reloadApps: () -> Unit = {
         scope.launch {
             apps = loadInstalledApps(context)
@@ -147,45 +189,19 @@ fun SandboxApp(
             }
         }
     }
-    
+
     LaunchedEffect(Unit) {
         apps = loadInstalledApps(context)
         isLoading = false
     }
-    
-    DisposableEffect(Unit) {
-        val contentResolver = context.contentResolver
-        val handler = Handler(Looper.getMainLooper())
-        
-        val sandboxObserver = object : ContentObserver(handler) {
-            override fun onChange(selfChange: Boolean) {
-                Log.d(TAG, "Sandbox settings changed")
-                scope.launch {
-                    apps = loadInstalledApps(context)
-                }
-            }
-        }
-        
-        try {
-            contentResolver.registerContentObserver(
-                Settings.Secure.getUriFor("sandbox_config"),
-                false, sandboxObserver
-            )
-            Log.d(TAG, "Registered Settings observer for sandbox_config")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to register Settings observer", e)
-        }
-        
-        onDispose {
-            try {
-                contentResolver.unregisterContentObserver(sandboxObserver)
-                Log.d(TAG, "Unregistered Settings observer")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to unregister Settings observer", e)
-            }
+
+    val settingsFlow = rememberSettingsFlow(SettingsType.SECURE)
+    LaunchedEffect(settingsFlow) {
+        settingsFlow.observe(SANDBOX_CONFIG_KEY).collect {
+            apps = loadInstalledApps(context)
         }
     }
-    
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -197,34 +213,34 @@ fun SandboxApp(
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-    
+
     val filteredApps = remember(apps, searchQuery) {
         if (searchQuery.isEmpty()) apps
-        else apps.filter { 
+        else apps.filter {
             it.label.contains(searchQuery, ignoreCase = true) ||
             it.packageName.contains(searchQuery, ignoreCase = true)
         }
     }
-    
+
     var notificationCount by remember { mutableStateOf(0) }
-    
+
     DisposableEffect(Unit) {
         val sandboxManager = context.getSystemService(Context.AX_SANDBOX_SERVICE) as? android.app.AxSandboxManager
-        
+
         val listener = object : IHiddenNotificationListener.Stub() {
             override fun onHiddenNotificationPosted(info: HiddenNotificationInfo) {
                 scope.launch(Dispatchers.Main) {
                     notificationCount++
                 }
             }
-            
+
             override fun onHiddenNotificationRemoved(key: String) {
                 scope.launch(Dispatchers.Main) {
                     if (notificationCount > 0) notificationCount--
                 }
             }
         }
-        
+
         try {
             sandboxManager?.registerHiddenNotificationListener(listener)
             scope.launch(Dispatchers.IO) {
@@ -236,7 +252,7 @@ fun SandboxApp(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to register notification listener", e)
         }
-        
+
         onDispose {
             try {
                 sandboxManager?.unregisterHiddenNotificationListener(listener)
@@ -245,36 +261,26 @@ fun SandboxApp(
             }
         }
     }
-    
+
     if (selectedApp != null) {
         AppDetailScreen(
             app = selectedApp!!,
             onBackClick = { selectedApp = null },
             onLockToggle = { app ->
                 scope.launch {
-                    val newState = !app.isLocked
-                    toggleAppLock(context, app.packageName, newState)
+                    toggleAppLock(context, app.packageName, !app.isLocked)
                     reloadApps()
                 }
             },
             onHideToggle = { app ->
                 scope.launch {
-                    val newState = !app.isHidden
-                    toggleAppHidden(context, app.packageName, newState)
+                    toggleAppHidden(context, app.packageName, !app.isHidden)
                     reloadApps()
                 }
             },
             onSandboxToggle = { app ->
                 scope.launch {
-                    val newState = !app.isSandboxed
-                    toggleAppSandboxed(context, app.packageName, newState)
-                    reloadApps()
-                }
-            },
-            onDevOptionsToggle = { app ->
-                scope.launch {
-                    val newState = !app.isDevOptionsHidden
-                    toggleDevOptionsHidden(context, app.packageName, newState)
+                    toggleAppSandboxed(context, app.packageName, !app.isSandboxed)
                     reloadApps()
                 }
             },
@@ -284,65 +290,494 @@ fun SandboxApp(
             isSecuritySetup = isSecuritySetup
         )
     } else {
+        val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+
         Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
-            bottomBar = {
-                ExpressiveNavigationBar(
-                    selectedIndex = pagerState.currentPage,
-                    onItemSelected = { index ->
-                        scope.launch { pagerState.animateScrollToPage(index) }
-                    }
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            topBar = {
+                LargeTopAppBar(
+                    title = {
+                        if (isSearchExpanded) {
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = { Text(stringResource(R.string.search_hint)) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                singleLine = true,
+                                shape = MaterialTheme.shapes.extraLarge,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceBright,
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceBright,
+                                    unfocusedBorderColor = Color.Transparent,
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        } else {
+                            Text(stringResource(R.string.sandbox_title))
+                        }
+                    },
+                    actions = {
+                        FilledIconToggleButton(
+                            checked = isSearchExpanded,
+                            onCheckedChange = {
+                                onSearchExpandedChange(it)
+                                if (!it) searchQuery = ""
+                            },
+                            shape = CircleShape,
+                            colors = IconButtonDefaults.filledIconToggleButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceBright,
+                                checkedContainerColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = stringResource(R.string.action_search)
+                            )
+                        }
+
+                        Box {
+                            FilledIconButton(
+                                onClick = {
+                                    scope.launch { pagerState.animateScrollToPage(1) }
+                                },
+                                shape = CircleShape,
+                                colors = IconButtonDefaults.filledIconButtonColors(
+                                    containerColor = if (notificationCount > 0)
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.surfaceBright
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = if (notificationCount > 0) Icons.Filled.Notifications else Icons.Outlined.Notifications,
+                                    contentDescription = stringResource(R.string.action_notifications)
+                                )
+                            }
+
+                            if (notificationCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 2.dp, y = (-2).dp)
+                                        .size(18.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.error),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (notificationCount > 9) "9+" else notificationCount.toString(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onError
+                                    )
+                                }
+                            }
+                        }
+
+                        FilledIconButton(
+                            onClick = onSettingsClick,
+                            shape = CircleShape,
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceBright
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = stringResource(R.string.action_settings)
+                            )
+                        }
+                    },
+                    scrollBehavior = scrollBehavior,
+                    colors = TopAppBarDefaults.largeTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                    )
                 )
+            },
+            bottomBar = {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surfaceBright,
+                    tonalElevation = 0.dp,
+                    modifier = Modifier.navigationBarsPadding()
+                ) {
+                    NavigationBarItem(
+                        selected = pagerState.currentPage == 0,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+                        icon = {
+                            Icon(
+                                imageVector = if (pagerState.currentPage == 0) Icons.Filled.Apps else Icons.Outlined.Apps,
+                                contentDescription = stringResource(R.string.tab_apps)
+                            )
+                        },
+                        label = { Text(stringResource(R.string.tab_apps)) },
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    )
+                    NavigationBarItem(
+                        selected = pagerState.currentPage == 1,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+                        icon = {
+                            Icon(
+                                imageVector = if (pagerState.currentPage == 1) Icons.Filled.Notifications else Icons.Outlined.Notifications,
+                                contentDescription = stringResource(R.string.tab_notifications)
+                            )
+                        },
+                        label = { Text(stringResource(R.string.tab_notifications)) },
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    )
+                }
             }
         ) { paddingValues ->
-            Column(
+            HorizontalPager(
+                state = pagerState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-            ) {
-                ExpressiveHeader(
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { searchQuery = it },
-                    isSearchExpanded = isSearchExpanded,
-                    onSearchExpandedChange = { expanded ->
-                        onSearchExpandedChange(expanded)
-                        if (!expanded) searchQuery = ""
-                    },
-                    onNotificationsClick = {
-                        scope.launch { pagerState.animateScrollToPage(2) }
-                    },
-                    notificationCount = notificationCount,
-                    onSettingsClick = onSettingsClick
-                )
-                
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize()
-                ) { page ->
-                    when (page) {
-                        0 -> AppsTab(
-                            apps = filteredApps,
-                            isLoading = isLoading,
-                            onAppClick = { app -> selectedApp = app },
-                            isPrivateAreaExpanded = isPrivateAreaExpanded,
-                            onPrivateAreaExpandChange = onPrivateAreaExpandChange,
-                            onUnlockRequest = onUnlockRequest,
-                            isPrivateUnlocked = isPrivateUnlocked,
-                            isSecuritySetup = isSecuritySetup,
-                            onSetupSecurity = onSetupSecurity
-                        )
-                        1 -> NotificationsTab(
-                            isUnlocked = isPrivateUnlocked,
-                            onUnlockRequest = onUnlockRequest
-                        )
-                    }
+            ) { page ->
+                when (page) {
+                    0 -> AppsTab(
+                        apps = filteredApps,
+                        isLoading = isLoading,
+                        onAppClick = { app -> selectedApp = app },
+                        isPrivateAreaExpanded = isPrivateAreaExpanded,
+                        onPrivateAreaExpandChange = onPrivateAreaExpandChange,
+                        onUnlockRequest = onUnlockRequest,
+                        isPrivateUnlocked = isPrivateUnlocked,
+                        isSecuritySetup = isSecuritySetup,
+                        onSetupSecurity = onSetupSecurity
+                    )
+                    1 -> NotificationsTab(
+                        isUnlocked = isPrivateUnlocked,
+                        onUnlockRequest = onUnlockRequest
+                    )
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SandboxOptionsDropdown(
+    app: AppInfo,
+    sandboxManager: android.app.AxSandboxManager?,
+    onSandboxToggle: (AppInfo) -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val accentColor = MaterialTheme.colorScheme.secondary
+    var expanded by rememberSaveable { mutableStateOf(app.isSandboxed) }
+
+    var restrictInternet by remember(app.packageName) {
+        val gids = sandboxManager?.getRestrictedGids(app.packageName)
+        mutableStateOf(gids != null && gids.contains(android.app.AxSandboxManager.GID_INET))
+    }
+
+    var restrictStorage by remember(app.packageName) {
+        val gids = sandboxManager?.getRestrictedGids(app.packageName)
+        val storageGids = android.app.AxSandboxManager.STORAGE_GIDS
+        mutableStateOf(gids != null && storageGids.any { gids.contains(it) })
+    }
+
+    var dataIsolation by remember(app.packageName) {
+        mutableStateOf(sandboxManager?.isSandboxDataIsolationEnabled(app.packageName) == true)
+    }
+
+    Column {
+        ExpandableDropdownHeader(
+            icon = Icons.Outlined.Security,
+            activeIcon = Icons.Filled.Security,
+            title = stringResource(R.string.sandbox_options_title),
+            isExpanded = expanded,
+            hasActiveItems = app.isSandboxed,
+            color = accentColor,
+            onToggleExpand = { expanded = !expanded }
+        )
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column(
+                modifier = Modifier.padding(start = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                SubSettingRow(
+                    title = stringResource(R.string.action_isolate),
+                    description = stringResource(R.string.isolate_app_description),
+                    isEnabled = app.isSandboxed,
+                    accentColor = accentColor,
+                    onToggle = { onSandboxToggle(app) }
+                )
+
+                SubSettingRow(
+                    title = stringResource(R.string.restrict_internet_title),
+                    description = stringResource(R.string.restrict_internet_description),
+                    isEnabled = restrictInternet,
+                    accentColor = accentColor,
+                    onToggle = {
+                        if (sandboxManager == null) return@SubSettingRow
+                        restrictInternet = !restrictInternet
+                        scope.launch(Dispatchers.IO) {
+                            val current = sandboxManager.getRestrictedGids(app.packageName)
+                                    ?.toMutableList() ?: mutableListOf()
+                            if (restrictInternet) {
+                                if (!current.contains(android.app.AxSandboxManager.GID_INET))
+                                    current.add(android.app.AxSandboxManager.GID_INET)
+                            } else {
+                                current.remove(android.app.AxSandboxManager.GID_INET)
+                            }
+                            sandboxManager.setRestrictedGids(app.packageName,
+                                    current.toIntArray())
+                        }
+                    }
+                )
+
+                SubSettingRow(
+                    title = stringResource(R.string.restrict_storage_title),
+                    description = stringResource(R.string.restrict_storage_description),
+                    isEnabled = restrictStorage,
+                    accentColor = accentColor,
+                    onToggle = {
+                        if (sandboxManager == null) return@SubSettingRow
+                        restrictStorage = !restrictStorage
+                        scope.launch(Dispatchers.IO) {
+                            val current = sandboxManager.getRestrictedGids(app.packageName)
+                                    ?.toMutableList() ?: mutableListOf()
+                            val storageGids = android.app.AxSandboxManager.STORAGE_GIDS
+                            if (restrictStorage) {
+                                for (gid in storageGids) {
+                                    if (!current.contains(gid)) current.add(gid)
+                                }
+                            } else {
+                                current.removeAll(storageGids.toSet())
+                            }
+                            sandboxManager.setRestrictedGids(app.packageName,
+                                    current.toIntArray())
+                        }
+                    }
+                )
+
+                SubSettingRow(
+                    title = stringResource(R.string.data_isolation_title),
+                    description = stringResource(R.string.data_isolation_description),
+                    isEnabled = dataIsolation,
+                    accentColor = accentColor,
+                    onToggle = {
+                        if (sandboxManager == null) return@SubSettingRow
+                        dataIsolation = !dataIsolation
+                        scope.launch(Dispatchers.IO) {
+                            sandboxManager.setSandboxDataIsolationEnabled(
+                                    app.packageName, dataIsolation)
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+private data class SpoofSettingEntry(
+    val key: String,
+    val database: String,
+    val titleRes: Int,
+    val descriptionRes: Int
+)
+
+private val SPOOF_SETTINGS = listOf(
+    SpoofSettingEntry("adb_enabled", "global",
+            R.string.spoof_adb_enabled, R.string.spoof_adb_enabled_description),
+    SpoofSettingEntry("development_settings_enabled", "global",
+            R.string.spoof_dev_settings_enabled, R.string.spoof_dev_settings_enabled_description),
+    SpoofSettingEntry("adb_wifi_enabled", "global",
+            R.string.spoof_adb_wifi_enabled, R.string.spoof_adb_wifi_enabled_description),
+    SpoofSettingEntry("package_verifier_user_consent", "global",
+            R.string.spoof_package_verifier, R.string.spoof_package_verifier_description),
+    SpoofSettingEntry("verify_apps_over_usb", "global",
+            R.string.spoof_verify_apps_usb, R.string.spoof_verify_apps_usb_description),
+    SpoofSettingEntry("development_settings_enabled", "secure",
+            R.string.spoof_dev_settings_enabled, R.string.spoof_dev_settings_enabled_description)
+)
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SpoofSettingsDropdown(
+    app: AppInfo,
+    sandboxManager: android.app.AxSandboxManager?
+) {
+    if (sandboxManager == null) return
+
+    val scope = rememberCoroutineScope()
+    val accentColor = MaterialTheme.colorScheme.tertiary
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
+    var spoofEnabled by remember(app.packageName) {
+        mutableStateOf(sandboxManager.isSandboxSettingsSpoofEnabled(app.packageName))
+    }
+
+    Column {
+        ExpandableDropdownHeader(
+            icon = Icons.Outlined.VisibilityOff,
+            activeIcon = Icons.Filled.VisibilityOff,
+            title = stringResource(R.string.spoof_settings_title),
+            isExpanded = expanded,
+            hasActiveItems = spoofEnabled,
+            color = accentColor,
+            onToggleExpand = { expanded = !expanded }
+        )
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column(
+                modifier = Modifier.padding(start = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                SPOOF_SETTINGS.forEach { entry ->
+                    SubSettingRow(
+                        title = "settings.${entry.database}.${entry.key}",
+                        description = stringResource(entry.descriptionRes),
+                        isEnabled = spoofEnabled,
+                        accentColor = accentColor,
+                        onToggle = {
+                            spoofEnabled = !spoofEnabled
+                            scope.launch(Dispatchers.IO) {
+                                sandboxManager.setSandboxSettingsSpoofEnabled(
+                                        app.packageName, spoofEnabled)
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ExpandableDropdownHeader(
+    icon: ImageVector,
+    activeIcon: ImageVector,
+    title: String,
+    isExpanded: Boolean,
+    hasActiveItems: Boolean,
+    color: Color,
+    onToggleExpand: () -> Unit,
+    trailingContent: @Composable (() -> Unit)? = null
+) {
+    val motionScheme = MaterialTheme.motionScheme
+    val backgroundColor by animateColorAsState(
+        targetValue = if (hasActiveItems) color.copy(alpha = 0.12f) else Color.Transparent,
+        animationSpec = motionScheme.defaultEffectsSpec(),
+        label = "dropdownBg"
+    )
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        animationSpec = motionScheme.defaultSpatialSpec(),
+        label = "dropdownChevron"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.large)
+            .background(backgroundColor)
+            .clickable(onClick = onToggleExpand)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = if (hasActiveItems) activeIcon else icon,
+            contentDescription = null,
+            tint = if (hasActiveItems) color else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp)
+        )
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (hasActiveItems) color else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+
+        if (trailingContent != null) {
+            trailingContent()
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
+        Icon(
+            imageVector = Icons.Filled.ExpandMore,
+            contentDescription = null,
+            tint = if (hasActiveItems) color else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .size(20.dp)
+                .graphicsLayer { rotationZ = rotationAngle }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SubSettingRow(
+    title: String,
+    description: String,
+    isEnabled: Boolean,
+    accentColor: Color,
+    onToggle: () -> Unit
+) {
+    val motionScheme = MaterialTheme.motionScheme
+    val bgColor by animateColorAsState(
+        targetValue = if (isEnabled) accentColor.copy(alpha = 0.08f)
+        else Color.Transparent,
+        animationSpec = motionScheme.defaultEffectsSpec(),
+        label = "subBg"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.large)
+            .background(bgColor)
+            .clickable { onToggle() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isEnabled) accentColor
+                else MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(
+            checked = isEnabled,
+            onCheckedChange = { onToggle() }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppDetailScreen(
     app: AppInfo,
@@ -350,36 +785,37 @@ fun AppDetailScreen(
     onLockToggle: (AppInfo) -> Unit,
     onHideToggle: (AppInfo) -> Unit,
     onSandboxToggle: (AppInfo) -> Unit,
-    onDevOptionsToggle: (AppInfo) -> Unit,
     onLaunch: (AppInfo) -> Unit,
     isSecuritySetup: Boolean = false
 ) {
     val bitmap = remember(app.packageName) {
         app.icon.toBitmap(128, 128)
     }
-    
+    val motionScheme = MaterialTheme.motionScheme
+
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         topBar = {
-            TopAppBar(
+            LargeTopAppBar(
                 title = { Text(app.label) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            imageVector = Icons.Filled.Lock,
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 },
                 actions = {
-                    IconButton(onClick = { onLaunch(app) }) {
+                    FilledTonalIconButton(onClick = { onLaunch(app) }) {
                         Icon(
                             imageVector = Icons.Default.OpenInNew,
-                            contentDescription = "Launch"
+                            contentDescription = stringResource(R.string.action_launch)
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
                 )
             )
         }
@@ -388,16 +824,16 @@ fun AppDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             item {
                 Box(
                     modifier = Modifier
                         .size(96.dp)
-                        .clip(ExpressiveShapes.large)
-                        .background(MaterialTheme.colorScheme.surfaceContainer),
+                        .clip(MaterialTheme.shapes.extraLarge)
+                        .background(MaterialTheme.colorScheme.surfaceBright),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
@@ -407,7 +843,7 @@ fun AppDetailScreen(
                     )
                 }
             }
-            
+
             item {
                 Text(
                     text = app.packageName,
@@ -415,64 +851,67 @@ fun AppDetailScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             item { Spacer(modifier = Modifier.height(8.dp)) }
-            
+
             if (isSecuritySetup) {
                 item {
                     SettingsCard(
                         icon = Icons.Outlined.Lock,
                         activeIcon = Icons.Filled.Lock,
-                        title = "Lock App",
-                        description = "Require authentication to open this app",
+                        title = stringResource(R.string.lock_app_title),
+                        description = stringResource(R.string.lock_app_description),
                         isEnabled = app.isLocked,
                         onToggle = { onLockToggle(app) },
                         accentColor = MaterialTheme.colorScheme.primary
                     )
                 }
-                
+
                 item {
                     SettingsCard(
                         icon = Icons.Outlined.VisibilityOff,
                         activeIcon = Icons.Filled.VisibilityOff,
-                        title = "Hide App",
-                        description = "Hide from launcher and settings",
+                        title = stringResource(R.string.hide_app_title),
+                        description = if (app.isHidden) stringResource(R.string.hide_app_description_on)
+                        else stringResource(R.string.hide_app_description_off),
                         isEnabled = app.isHidden,
                         onToggle = { onHideToggle(app) },
                         accentColor = MaterialTheme.colorScheme.tertiary
                     )
                 }
             }
-            
+
             item {
-                SettingsCard(
-                    icon = Icons.Outlined.Security,
-                    activeIcon = Icons.Filled.Security,
-                    title = "Sandbox",
-                    description = "Hide from other apps (banking apps, etc.)",
-                    isEnabled = app.isSandboxed,
-                    onToggle = { onSandboxToggle(app) },
-                    accentColor = MaterialTheme.colorScheme.secondary
+                val context = LocalContext.current
+                val sandboxManager = remember {
+                    context.getSystemService(android.app.AxSandboxManager::class.java)
+                }
+                SandboxOptionsDropdown(
+                    app = app,
+                    sandboxManager = sandboxManager,
+                    onSandboxToggle = onSandboxToggle
                 )
             }
-            
+
             item {
-                SettingsCard(
-                    icon = Icons.Outlined.Code,
-                    activeIcon = Icons.Filled.Code,
-                    title = "Hide Developer Options",
-                    description = "This app sees dev options as disabled",
-                    isEnabled = app.isDevOptionsHidden,
-                    onToggle = { onDevOptionsToggle(app) },
-                    accentColor = MaterialTheme.colorScheme.error
+                val context = LocalContext.current
+                val sandboxManager = remember {
+                    context.getSystemService(android.app.AxSandboxManager::class.java)
+                }
+                SpoofSettingsDropdown(
+                    app = app,
+                    sandboxManager = sandboxManager
                 )
             }
+
+            item { Spacer(modifier = Modifier.height(24.dp)) }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun SettingsCard(
+private fun SettingsCard(
     icon: ImageVector,
     activeIcon: ImageVector,
     title: String,
@@ -481,27 +920,26 @@ fun SettingsCard(
     onToggle: () -> Unit,
     accentColor: Color
 ) {
+    val motionScheme = MaterialTheme.motionScheme
+
     val cardColor by animateColorAsState(
-        targetValue = if (isEnabled) {
-            accentColor.copy(alpha = 0.15f)
-        } else {
-            MaterialTheme.colorScheme.surfaceContainer
-        },
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        targetValue = if (isEnabled) accentColor.copy(alpha = 0.12f)
+        else MaterialTheme.colorScheme.surfaceBright,
+        animationSpec = motionScheme.defaultEffectsSpec(),
         label = "cardColor"
     )
-    
+
     val iconColor by animateColorAsState(
         targetValue = if (isEnabled) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        animationSpec = motionScheme.defaultEffectsSpec(),
         label = "iconColor"
     )
-    
-    Card(
+
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = ExpressiveShapes.large,
-        colors = CardDefaults.cardColors(containerColor = cardColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        shape = MaterialTheme.shapes.extraLarge,
+        color = cardColor,
+        tonalElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
@@ -513,10 +951,10 @@ fun SettingsCard(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(ExpressiveShapes.medium)
+                    .clip(MaterialTheme.shapes.large)
                     .background(
                         if (isEnabled) accentColor.copy(alpha = 0.2f)
-                        else MaterialTheme.colorScheme.surfaceContainer
+                        else MaterialTheme.colorScheme.surfaceContainerHigh
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -527,14 +965,13 @@ fun SettingsCard(
                     modifier = Modifier.size(24.dp)
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -544,9 +981,9 @@ fun SettingsCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(12.dp))
-            
+
             Switch(
                 checked = isEnabled,
                 onCheckedChange = { onToggle() }
@@ -555,202 +992,7 @@ fun SettingsCard(
     }
 }
 
-@Composable
-fun ExpressiveHeader(
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    isSearchExpanded: Boolean,
-    onSearchExpandedChange: (Boolean) -> Unit,
-    onNotificationsClick: () -> Unit = {},
-    notificationCount: Int = 0,
-    onSettingsClick: () -> Unit = {}
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                        MaterialTheme.colorScheme.background
-                    )
-                )
-            )
-            .padding(horizontal = 24.dp, vertical = 16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(modifier = Modifier.weight(1f)) {
-                if (isSearchExpanded) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = onSearchQueryChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Search apps...") },
-                        leadingIcon = { 
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        singleLine = true,
-                        shape = ExpressiveShapes.large,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                } else {
-                    Text(
-                        text = "Sandbox",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.width(12.dp))
-            
-            FilledIconToggleButton(
-                checked = isSearchExpanded,
-                onCheckedChange = { 
-                    onSearchExpandedChange(it)
-                    if (!it) onSearchQueryChange("")
-                },
-                shape = ExpressiveShapes.full,
-                colors = IconButtonDefaults.filledIconToggleButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    checkedContainerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search"
-                )
-            }
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            Box {
-                FilledIconButton(
-                    onClick = onNotificationsClick,
-                    shape = ExpressiveShapes.full,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = if (notificationCount > 0) 
-                            MaterialTheme.colorScheme.primaryContainer
-                        else 
-                            MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    Icon(
-                        imageVector = if (notificationCount > 0) Icons.Filled.Notifications else Icons.Outlined.Notifications,
-                        contentDescription = "Notifications"
-                    )
-                }
-                
-                if (notificationCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(x = 2.dp, y = (-2).dp)
-                            .size(18.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.error),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (notificationCount > 9) "9+" else notificationCount.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onError,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            FilledIconButton(
-                onClick = onSettingsClick,
-                shape = ExpressiveShapes.full,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings"
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ExpressiveNavigationBar(
-    selectedIndex: Int,
-    onItemSelected: (Int) -> Unit
-) {
-    NavigationBar(
-        modifier = Modifier
-            .padding(horizontal = 24.dp, vertical = 20.dp)
-            .navigationBarsPadding()
-            .clip(ExpressiveShapes.extraLarge)
-            .shadow(
-                elevation = 16.dp,
-                shape = ExpressiveShapes.extraLarge,
-                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-            ),
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-        tonalElevation = 0.dp
-    ) {
-        NavigationBarItem(
-            selected = selectedIndex == 0,
-            onClick = { onItemSelected(0) },
-            icon = {
-                Icon(
-                    imageVector = if (selectedIndex == 0) Icons.Filled.Apps else Icons.Outlined.Apps,
-                    contentDescription = "Apps"
-                )
-            },
-            label = { Text("Apps") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        )
-        NavigationBarItem(
-            selected = selectedIndex == 1,
-            onClick = { onItemSelected(1) },
-            icon = {
-                Icon(
-                    imageVector = if (selectedIndex == 1) Icons.Filled.Notifications else Icons.Outlined.Notifications,
-                    contentDescription = "Notifications"
-                )
-            },
-            label = { Text("Notifications") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppsTab(
     apps: List<AppInfo>,
@@ -768,64 +1010,51 @@ fun AppsTab(
     var selectedApp by remember { mutableStateOf<AppInfo?>(null) }
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
-    
+
     val privateApps = remember(apps) { apps.filter { it.isLocked || it.isHidden } }
     val sandboxedApps = remember(apps) { apps.filter { it.isSandboxed && !it.isLocked && !it.isHidden } }
-    val devOptsHiddenApps = remember(apps) { apps.filter { it.isDevOptionsHidden && !it.isLocked && !it.isHidden && !it.isSandboxed } }
-    val regularApps = remember(apps) { apps.filter { !it.isLocked && !it.isHidden && !it.isSandboxed && !it.isDevOptionsHidden } }
-    
+    val regularApps = remember(apps) { apps.filter { !it.isLocked && !it.isHidden && !it.isSandboxed } }
+
     val effectiveExpanded = isPrivateUnlocked && isPrivateAreaExpanded
-    
+
     val onLockToggle: (AppInfo) -> Unit = { app ->
         scope.launch {
-            val newState = !app.isLocked
-            toggleAppLock(context, app.packageName, newState)
-            selectedApp = app.copy(isLocked = newState)
+            toggleAppLock(context, app.packageName, !app.isLocked)
+            selectedApp = app.copy(isLocked = !app.isLocked)
         }
     }
-    
+
     val onHideToggle: (AppInfo) -> Unit = { app ->
         scope.launch {
-            val newState = !app.isHidden
-            toggleAppHidden(context, app.packageName, newState)
-            selectedApp = app.copy(isHidden = newState)
+            toggleAppHidden(context, app.packageName, !app.isHidden)
+            selectedApp = app.copy(isHidden = !app.isHidden)
         }
     }
-    
+
     val onSandboxToggle: (AppInfo) -> Unit = { app ->
         scope.launch {
-            val newState = !app.isSandboxed
-            toggleAppSandboxed(context, app.packageName, newState)
-            selectedApp = app.copy(isSandboxed = newState)
+            toggleAppSandboxed(context, app.packageName, !app.isSandboxed)
+            selectedApp = app.copy(isSandboxed = !app.isSandboxed)
         }
     }
-    
-    val onDevOptionsToggle: (AppInfo) -> Unit = { app ->
-        scope.launch {
-            val newState = !app.isDevOptionsHidden
-            toggleDevOptionsHidden(context, app.packageName, newState)
-            selectedApp = app.copy(isDevOptionsHidden = newState)
-        }
-    }
-    
+
     if (showBottomSheet && selectedApp != null) {
         ModalBottomSheet(
-            onDismissRequest = { 
+            onDismissRequest = {
                 showBottomSheet = false
-                selectedApp = null 
+                selectedApp = null
             },
             sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+            containerColor = MaterialTheme.colorScheme.surfaceBright,
+            shape = MaterialTheme.shapes.extraLarge
         ) {
             AppQuickActionsSheet(
                 app = selectedApp!!,
                 onLockToggle = onLockToggle,
                 onHideToggle = onHideToggle,
                 onSandboxToggle = onSandboxToggle,
-                onDevOptionsToggle = onDevOptionsToggle,
                 onLaunch = { app -> launchApp(context, app.packageName) },
-                onDismiss = { 
+                onDismiss = {
                     scope.launch { sheetState.hide() }.invokeOnCompletion {
                         if (!sheetState.isVisible) {
                             showBottomSheet = false
@@ -836,25 +1065,20 @@ fun AppsTab(
             )
         }
     }
-    
+
     if (isLoading) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator(
-                strokeWidth = 3.dp,
-                color = MaterialTheme.colorScheme.primary
-            )
+            LoadingIndicator()
         }
     } else if (apps.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
                     imageVector = Icons.Outlined.Apps,
                     contentDescription = null,
@@ -863,7 +1087,7 @@ fun AppsTab(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "No apps found",
+                    stringResource(R.string.no_apps_found),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -873,7 +1097,7 @@ fun AppsTab(
         LazyVerticalGrid(
             columns = GridCells.Fixed(4),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -883,7 +1107,7 @@ fun AppsTab(
                 } else if (privateApps.isNotEmpty()) {
                     CollapsibleSectionHeader(
                         icon = if (effectiveExpanded) Icons.Filled.LockOpen else Icons.Filled.Lock,
-                        title = "Private Apps",
+                        title = stringResource(R.string.section_private_apps),
                         count = privateApps.size,
                         color = MaterialTheme.colorScheme.primary,
                         isExpanded = effectiveExpanded,
@@ -897,7 +1121,7 @@ fun AppsTab(
                     )
                 }
             }
-            
+
             if (isSecuritySetup && privateApps.isNotEmpty() && effectiveExpanded) {
                 items(privateApps, key = { "private_${it.packageName}" }) { app ->
                     AppGridItem(
@@ -909,23 +1133,23 @@ fun AppsTab(
                     )
                 }
             }
-            
+
             if (isSecuritySetup && privateApps.isNotEmpty()) {
                 item(span = { GridItemSpan(4) }) {
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
-            
+
             if (sandboxedApps.isNotEmpty()) {
                 item(span = { GridItemSpan(4) }) {
                     SectionHeader(
                         icon = Icons.Filled.Security,
-                        title = "Sandboxed Apps",
+                        title = stringResource(R.string.section_isolated_apps),
                         count = sandboxedApps.size,
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }
-                
+
                 items(sandboxedApps, key = { "sandboxed_${it.packageName}" }) { app ->
                     AppGridItem(
                         app = app,
@@ -935,46 +1159,21 @@ fun AppsTab(
                         }
                     )
                 }
-                
+
                 item(span = { GridItemSpan(4) }) {
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
-            
-            if (devOptsHiddenApps.isNotEmpty()) {
-                item(span = { GridItemSpan(4) }) {
-                    SectionHeader(
-                        icon = Icons.Filled.Code,
-                        title = "DevOpts Hidden",
-                        count = devOptsHiddenApps.size,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-                
-                items(devOptsHiddenApps, key = { "devopt_${it.packageName}" }) { app ->
-                    AppGridItem(
-                        app = app,
-                        onClick = {
-                            selectedApp = app
-                            showBottomSheet = true
-                        }
-                    )
-                }
-                
-                item(span = { GridItemSpan(4) }) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
-            
+
             item(span = { GridItemSpan(4) }) {
                 SectionHeader(
                     icon = Icons.Filled.Apps,
-                    title = "All Apps",
+                    title = stringResource(R.string.section_all_apps),
                     count = regularApps.size,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             items(regularApps, key = { "regular_${it.packageName}" }) { app ->
                 AppGridItem(
                     app = app,
@@ -984,7 +1183,7 @@ fun AppsTab(
                     }
                 )
             }
-            
+
             item(span = { GridItemSpan(4) }) {
                 Spacer(modifier = Modifier.height(80.dp))
             }
@@ -993,18 +1192,14 @@ fun AppsTab(
 }
 
 @Composable
-fun SetupPrivateAppsCard(
-    onSetupClick: () -> Unit
-) {
-    Card(
+private fun SetupPrivateAppsCard(onSetupClick: () -> Unit) {
+    Surface(
         onClick = onSetupClick,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 8.dp),
-        shape = ExpressiveShapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-        )
+            .padding(vertical = 8.dp),
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
     ) {
         Row(
             modifier = Modifier
@@ -1015,7 +1210,7 @@ fun SetupPrivateAppsCard(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(ExpressiveShapes.medium)
+                    .clip(MaterialTheme.shapes.large)
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
@@ -1029,21 +1224,20 @@ fun SetupPrivateAppsCard(
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Set Up Private Apps",
+                    text = stringResource(R.string.setup_private_apps_title),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Create a PIN, password, or pattern to lock and hide apps",
+                    text = stringResource(R.string.setup_private_apps_description),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Icon(
                 imageVector = Icons.Default.ExpandMore,
-                contentDescription = "Set up",
+                contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
             )
@@ -1051,8 +1245,9 @@ fun SetupPrivateAppsCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun SectionHeader(
+private fun SectionHeader(
     icon: ImageVector,
     title: String,
     count: Int,
@@ -1061,7 +1256,7 @@ fun SectionHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 8.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -1073,8 +1268,7 @@ fun SectionHeader(
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.labelLargeEmphasized,
             color = color
         )
         Spacer(modifier = Modifier.width(6.dp))
@@ -1086,8 +1280,9 @@ fun SectionHeader(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun CollapsibleSectionHeader(
+private fun CollapsibleSectionHeader(
     icon: ImageVector,
     title: String,
     count: Int,
@@ -1095,16 +1290,17 @@ fun CollapsibleSectionHeader(
     isExpanded: Boolean,
     onExpandChange: (Boolean) -> Unit
 ) {
+    val motionScheme = MaterialTheme.motionScheme
     val rotationAngle by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        animationSpec = motionScheme.defaultSpatialSpec(),
         label = "chevron"
     )
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(ExpressiveShapes.medium)
+            .clip(MaterialTheme.shapes.large)
             .clickable { onExpandChange(!isExpanded) }
             .padding(horizontal = 8.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -1113,7 +1309,7 @@ fun CollapsibleSectionHeader(
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(color.copy(alpha = 0.15f)),
+                .background(color.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -1126,8 +1322,7 @@ fun CollapsibleSectionHeader(
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.labelLargeEmphasized,
             color = color,
             modifier = Modifier.weight(1f)
         )
@@ -1135,7 +1330,7 @@ fun CollapsibleSectionHeader(
             modifier = Modifier
                 .wrapContentSize()
                 .clip(CircleShape)
-                .background(color.copy(alpha = 0.15f)),
+                .background(color.copy(alpha = 0.12f)),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Spacer(modifier = Modifier.width(8.dp))
@@ -1151,7 +1346,7 @@ fun CollapsibleSectionHeader(
                 tint = color,
                 modifier = Modifier
                     .size(20.dp)
-                    .scale(1f, if (isExpanded) -1f else 1f)
+                    .graphicsLayer { rotationZ = rotationAngle }
             )
             Spacer(modifier = Modifier.width(8.dp))
         }
@@ -1159,26 +1354,25 @@ fun CollapsibleSectionHeader(
 }
 
 @Composable
-fun AppGridItem(
+private fun AppGridItem(
     app: AppInfo,
     onClick: () -> Unit
 ) {
     val protectionStates = listOfNotNull(
         if (app.isLocked) Pair(Icons.Filled.Lock, MaterialTheme.colorScheme.primary) else null,
         if (app.isHidden) Pair(Icons.Filled.VisibilityOff, MaterialTheme.colorScheme.tertiary) else null,
-        if (app.isSandboxed) Pair(Icons.Filled.Security, MaterialTheme.colorScheme.secondary) else null,
-        if (app.isDevOptionsHidden) Pair(Icons.Filled.Code, MaterialTheme.colorScheme.error) else null
+        if (app.isSandboxed) Pair(Icons.Filled.Security, MaterialTheme.colorScheme.secondary) else null
     )
     val hasAnyProtection = protectionStates.isNotEmpty()
-    
+
     val bitmap = remember(app.packageName) {
         app.icon.toBitmap(64, 64)
     }
-    
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(ExpressiveShapes.medium)
+            .clip(MaterialTheme.shapes.large)
             .clickable(onClick = onClick)
             .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -1189,9 +1383,9 @@ fun AppGridItem(
                 contentDescription = app.label,
                 modifier = Modifier
                     .size(52.dp)
-                    .clip(ExpressiveShapes.medium)
+                    .clip(MaterialTheme.shapes.large)
             )
-            
+
             if (hasAnyProtection) {
                 if (protectionStates.size == 1) {
                     val (badgeIcon, badgeColor) = protectionStates[0]
@@ -1206,7 +1400,7 @@ fun AppGridItem(
                         Icon(
                             imageVector = badgeIcon,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(10.dp)
                         )
                     }
@@ -1222,7 +1416,6 @@ fun AppGridItem(
                         Text(
                             text = "${protectionStates.size}",
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
@@ -1232,7 +1425,7 @@ fun AppGridItem(
                             .offset(x = 4.dp, y = 2.dp),
                         horizontalArrangement = Arrangement.spacedBy((-2).dp)
                     ) {
-                        protectionStates.take(3).forEachIndexed { index, (_, color) ->
+                        protectionStates.take(3).forEachIndexed { _, (_, color) ->
                             Box(
                                 modifier = Modifier
                                     .size(6.dp)
@@ -1244,13 +1437,12 @@ fun AppGridItem(
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(6.dp))
-        
+
         Text(
             text = app.label,
             style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             color = MaterialTheme.colorScheme.onSurface
@@ -1258,25 +1450,29 @@ fun AppGridItem(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun AppQuickActionsSheet(
+private fun AppQuickActionsSheet(
     app: AppInfo,
     onLockToggle: (AppInfo) -> Unit,
     onHideToggle: (AppInfo) -> Unit,
     onSandboxToggle: (AppInfo) -> Unit,
-    onDevOptionsToggle: (AppInfo) -> Unit,
     onLaunch: (AppInfo) -> Unit,
     onDismiss: () -> Unit
 ) {
     val bitmap = remember(app.packageName) {
         app.icon.toBitmap(80, 80)
     }
-    
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .wrapContentHeight()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)
             .padding(bottom = 32.dp)
+            .navigationBarsPadding()
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1287,16 +1483,16 @@ fun AppQuickActionsSheet(
                 contentDescription = app.label,
                 modifier = Modifier
                     .size(56.dp)
-                    .clip(ExpressiveShapes.medium)
+                    .clip(MaterialTheme.shapes.large)
             )
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = app.label,
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = app.packageName,
@@ -1306,59 +1502,55 @@ fun AppQuickActionsSheet(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            
-            FilledTonalIconButton(
-                onClick = { onLaunch(app) }
-            ) {
+
+            FilledTonalIconButton(onClick = { onLaunch(app) }) {
                 Icon(
                     imageVector = Icons.Default.OpenInNew,
-                    contentDescription = "Launch"
+                    contentDescription = stringResource(R.string.action_launch)
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         QuickActionRow(
             icon = Icons.Outlined.Lock,
             activeIcon = Icons.Filled.Lock,
-            title = "Lock",
+            title = stringResource(R.string.action_lock),
             isEnabled = app.isLocked,
             color = MaterialTheme.colorScheme.primary,
             onToggle = { onLockToggle(app) }
         )
-        
+
         QuickActionRow(
             icon = Icons.Outlined.VisibilityOff,
             activeIcon = Icons.Filled.VisibilityOff,
-            title = "Hide",
+            title = stringResource(R.string.action_hide),
             isEnabled = app.isHidden,
             color = MaterialTheme.colorScheme.tertiary,
             onToggle = { onHideToggle(app) }
         )
-        
-        QuickActionRow(
-            icon = Icons.Outlined.Security,
-            activeIcon = Icons.Filled.Security,
-            title = "Sandbox",
-            isEnabled = app.isSandboxed,
-            color = MaterialTheme.colorScheme.secondary,
-            onToggle = { onSandboxToggle(app) }
+
+        val sandboxManager = remember {
+            context.getSystemService(android.app.AxSandboxManager::class.java)
+        }
+
+        SandboxOptionsDropdown(
+            app = app,
+            sandboxManager = sandboxManager,
+            onSandboxToggle = onSandboxToggle
         )
-        
-        QuickActionRow(
-            icon = Icons.Outlined.Code,
-            activeIcon = Icons.Filled.Code,
-            title = "Hide DevOpts",
-            isEnabled = app.isDevOptionsHidden,
-            color = MaterialTheme.colorScheme.error,
-            onToggle = { onDevOptionsToggle(app) }
+
+        SpoofSettingsDropdown(
+            app = app,
+            sandboxManager = sandboxManager
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun QuickActionRow(
+private fun QuickActionRow(
     icon: ImageVector,
     activeIcon: ImageVector,
     title: String,
@@ -1366,16 +1558,17 @@ fun QuickActionRow(
     color: Color,
     onToggle: () -> Unit
 ) {
+    val motionScheme = MaterialTheme.motionScheme
     val backgroundColor by animateColorAsState(
         targetValue = if (isEnabled) color.copy(alpha = 0.12f) else Color.Transparent,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        animationSpec = motionScheme.defaultEffectsSpec(),
         label = "bg"
     )
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(ExpressiveShapes.medium)
+            .clip(MaterialTheme.shapes.large)
             .background(backgroundColor)
             .clickable(onClick = onToggle)
             .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -1387,162 +1580,22 @@ fun QuickActionRow(
             tint = if (isEnabled) color else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(24.dp)
         )
-        
+
         Spacer(modifier = Modifier.width(16.dp))
-        
+
         Text(
             text = title,
             style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
             color = if (isEnabled) color else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
-        
+
         Switch(
             checked = isEnabled,
-            onCheckedChange = { onToggle() },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = color,
-                checkedTrackColor = color.copy(alpha = 0.5f)
-            )
+            onCheckedChange = { onToggle() }
         )
     }
 }
-
-@Composable
-fun AppListItem(
-    app: AppInfo,
-    onClick: () -> Unit
-) {
-    val hasAnyProtection = app.isLocked || app.isHidden || app.isSandboxed || app.isDevOptionsHidden
-    val cardColor by animateColorAsState(
-        targetValue = if (hasAnyProtection) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-        } else {
-            MaterialTheme.colorScheme.surfaceContainer
-        },
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "cardColor"
-    )
-    
-    val bitmap = remember(app.packageName) {
-        app.icon.toBitmap(48, 48)
-    }
-    
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = ExpressiveShapes.medium,
-        colors = CardDefaults.cardColors(containerColor = cardColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = BitmapPainter(bitmap.asImageBitmap()),
-                contentDescription = app.label,
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(ExpressiveShapes.small)
-            )
-            
-            Spacer(modifier = Modifier.width(12.dp))
-            
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = app.label,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = app.packageName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                
-                if (hasAnyProtection) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        if (app.isLocked) {
-                            TextChip(
-                                icon = Icons.Filled.Lock,
-                                text = "Locked",
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        if (app.isHidden) {
-                            TextChip(
-                                icon = Icons.Filled.VisibilityOff,
-                                text = "Hidden",
-                                color = MaterialTheme.colorScheme.tertiary
-                            )
-                        }
-                        if (app.isSandboxed) {
-                            TextChip(
-                                icon = Icons.Filled.Security,
-                                text = "Sandbox",
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        }
-                        if (app.isDevOptionsHidden) {
-                            TextChip(
-                                icon = Icons.Filled.Code,
-                                text = "DevOpt",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun TextChip(
-    icon: ImageVector,
-    text: String,
-    color: Color
-) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(color.copy(alpha = 0.12f))
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(3.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(10.dp)
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Medium,
-            color = color
-        )
-    }
-}
-
 
 data class HiddenNotification(
     val key: String,
@@ -1554,6 +1607,7 @@ data class HiddenNotification(
     val contentIntent: android.app.PendingIntent? = null
 )
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NotificationsTab(
     isUnlocked: Boolean = false,
@@ -1572,8 +1626,8 @@ fun NotificationsTab(
                 Box(
                     modifier = Modifier
                         .size(96.dp)
-                        .clip(ExpressiveShapes.extraLarge)
-                        .background(MaterialTheme.colorScheme.surface),
+                        .clip(MaterialTheme.shapes.extraLarge)
+                        .background(MaterialTheme.colorScheme.surfaceBright),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -1583,29 +1637,28 @@ fun NotificationsTab(
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 Text(
-                    text = "Notifications Locked",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    text = stringResource(R.string.notifications_locked_title),
+                    style = MaterialTheme.typography.titleMediumEmphasized,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Text(
-                    text = "Unlock the private area to view notifications",
+                    text = stringResource(R.string.notifications_locked_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
-                Button(
+
+                FilledTonalButton(
                     onClick = onUnlockRequest,
-                    shape = ExpressiveShapes.large
+                    shape = MaterialTheme.shapes.extraLarge
                 ) {
                     Icon(
                         imageVector = Icons.Filled.LockOpen,
@@ -1613,20 +1666,20 @@ fun NotificationsTab(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Unlock")
+                    Text(stringResource(R.string.action_unlock))
                 }
             }
         }
         return
     }
-    
+
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var notifications by remember { mutableStateOf<List<HiddenNotification>>(emptyList()) }
-    
+
     DisposableEffect(Unit) {
         val sandboxManager = context.getSystemService(Context.AX_SANDBOX_SERVICE) as? android.app.AxSandboxManager
-        
+
         val listener = object : IHiddenNotificationListener.Stub() {
             override fun onHiddenNotificationPosted(info: HiddenNotificationInfo) {
                 scope.launch(Dispatchers.Main) {
@@ -1634,7 +1687,7 @@ fun NotificationsTab(
                     val icon = info.appIcon?.loadDrawable(context) ?: try {
                          pm.getApplicationIcon(info.packageName)
                     } catch (e: Exception) { null }
-                    
+
                     val notif = HiddenNotification(
                         key = info.key,
                         packageName = info.packageName,
@@ -1647,14 +1700,14 @@ fun NotificationsTab(
                     notifications = (listOf(notif) + notifications.filter { it.key != info.key })
                 }
             }
-            
+
             override fun onHiddenNotificationRemoved(key: String) {
                 scope.launch(Dispatchers.Main) {
                     notifications = notifications.filter { it.key != key }
                 }
             }
         }
-        
+
         try {
             sandboxManager?.registerHiddenNotificationListener(listener)
             scope.launch(Dispatchers.IO) {
@@ -1665,7 +1718,7 @@ fun NotificationsTab(
                          val icon = info.appIcon?.loadDrawable(context) ?: try {
                              pm.getApplicationIcon(info.packageName)
                         } catch (e: Exception) { null }
-                        
+
                         HiddenNotification(
                             key = info.key,
                             packageName = info.packageName,
@@ -1681,7 +1734,7 @@ fun NotificationsTab(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to register notification listener", e)
         }
-        
+
         onDispose {
             try {
                 sandboxManager?.unregisterHiddenNotificationListener(listener)
@@ -1690,7 +1743,7 @@ fun NotificationsTab(
             }
         }
     }
-    
+
     if (notifications.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -1704,15 +1757,8 @@ fun NotificationsTab(
                 Box(
                     modifier = Modifier
                         .size(96.dp)
-                        .clip(ExpressiveShapes.extraLarge)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primaryContainer,
-                                    MaterialTheme.colorScheme.tertiaryContainer
-                                )
-                            )
-                        ),
+                        .clip(MaterialTheme.shapes.extraLarge)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -1722,20 +1768,19 @@ fun NotificationsTab(
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 Text(
-                    text = "No private notifications",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    text = stringResource(R.string.no_private_notifications_title),
+                    style = MaterialTheme.typography.titleMediumEmphasized,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Text(
-                    text = "Notifications from hidden apps will appear here",
+                    text = stringResource(R.string.no_private_notifications_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1745,10 +1790,10 @@ fun NotificationsTab(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(notifications, key = { it.key }) { notification ->
-                ExpressiveNotificationItem(
+                NotificationItem(
                     notification = notification,
                     onLaunch = {
                         try {
@@ -1768,14 +1813,14 @@ fun NotificationsTab(
 }
 
 @Composable
-fun ExpressiveNotificationItem(
+private fun NotificationItem(
     notification: HiddenNotification,
     onLaunch: () -> Unit = {},
     onDismiss: () -> Unit = {}
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        shape = ExpressiveShapes.medium,
+        color = MaterialTheme.colorScheme.surfaceBright,
+        shape = MaterialTheme.shapes.extraLarge,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onLaunch)
@@ -1793,7 +1838,7 @@ fun ExpressiveNotificationItem(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .clip(ExpressiveShapes.small)
+                            .clip(MaterialTheme.shapes.medium)
                             .background(MaterialTheme.colorScheme.secondaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
@@ -1808,7 +1853,7 @@ fun ExpressiveNotificationItem(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .clip(ExpressiveShapes.small)
+                            .clip(MaterialTheme.shapes.medium)
                             .background(MaterialTheme.colorScheme.secondaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
@@ -1819,9 +1864,9 @@ fun ExpressiveNotificationItem(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.width(16.dp))
-                
+
                 Column(modifier = Modifier.weight(1f)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1830,20 +1875,19 @@ fun ExpressiveNotificationItem(
                         Text(
                             text = notification.title ?: notification.packageName,
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f)
                         )
-                        
+
                         Text(
                             text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(notification.timestamp)),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    
+
                     if (!notification.text.isNullOrEmpty()) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -1856,19 +1900,19 @@ fun ExpressiveNotificationItem(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = onDismiss) {
-                    Text("Dismiss")
+                androidx.compose.material3.TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.action_dismiss))
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 FilledTonalButton(
                     onClick = onLaunch,
-                    shape = ExpressiveShapes.medium
+                    shape = MaterialTheme.shapes.large
                 ) {
                     Icon(
                         imageVector = Icons.Default.OpenInNew,
@@ -1876,7 +1920,7 @@ fun ExpressiveNotificationItem(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Open")
+                    Text(stringResource(R.string.action_open))
                 }
             }
         }
@@ -1886,60 +1930,31 @@ fun ExpressiveNotificationItem(
 private suspend fun loadInstalledApps(context: Context): List<AppInfo> = withContext(Dispatchers.IO) {
     val pm = context.packageManager
     val sandboxManager = context.getSystemService(Context.AX_SANDBOX_SERVICE) as? android.app.AxSandboxManager
-    
+
     if (sandboxManager == null) {
         Log.e(TAG, "AxSandboxManager not available")
         return@withContext emptyList()
     }
-    
+
     val lockablePackages = sandboxManager.getLockablePackages() ?: emptyList()
-    
     val hiddenPackages = sandboxManager.getHiddenPackages() ?: emptyList()
-    
     val allPackages = (lockablePackages + hiddenPackages).toSet()
-    
-    Log.d(TAG, "Got ${lockablePackages.size} lockable + ${hiddenPackages.size} hidden = ${allPackages.size} total packages")
-    
+
     allPackages
         .mapNotNull { packageName ->
             try {
-                pm.getApplicationInfo(packageName, 
+                pm.getApplicationInfo(packageName,
                     PackageManager.GET_META_DATA or PackageManager.MATCH_UNINSTALLED_PACKAGES)
             } catch (e: PackageManager.NameNotFoundException) {
-                Log.w(TAG, "Package not found: $packageName")
                 null
             }
         }
         .sortedBy { pm.getApplicationLabel(it).toString().lowercase() }
         .map { appInfo ->
-            val isLocked = try {
-                sandboxManager.isAppLocked(appInfo.packageName) ?: false
-            } catch (e: Exception) {
-                Log.e(TAG, "Error checking if ${appInfo.packageName} is locked", e)
-                false
-            }
-            
-            val isHidden = try {
-                sandboxManager.isPackageHidden(appInfo.packageName) ?: false
-            } catch (e: Exception) {
-                Log.e(TAG, "Error checking if ${appInfo.packageName} is hidden", e)
-                false
-            }
-            
-            val isSandboxed = try {
-                sandboxManager.isPackageSandboxed(appInfo.packageName) ?: false
-            } catch (e: Exception) {
-                Log.e(TAG, "Error checking if ${appInfo.packageName} is sandboxed", e)
-                false
-            }
-            
-            val isDevOptionsHidden = try {
-                sandboxManager.isDevOptionsHidden(appInfo.packageName) ?: false
-            } catch (e: Exception) {
-                Log.e(TAG, "Error checking if ${appInfo.packageName} dev options hidden", e)
-                false
-            }
-            
+            val isLocked = try { sandboxManager.isAppLocked(appInfo.packageName) ?: false } catch (e: Exception) { false }
+            val isHidden = try { sandboxManager.isPackageHidden(appInfo.packageName) ?: false } catch (e: Exception) { false }
+            val isSandboxed = try { sandboxManager.isPackageSandboxed(appInfo.packageName) ?: false } catch (e: Exception) { false }
+
             AppInfo(
                 packageName = appInfo.packageName,
                 label = pm.getApplicationLabel(appInfo).toString(),
@@ -1947,25 +1962,15 @@ private suspend fun loadInstalledApps(context: Context): List<AppInfo> = withCon
                 uid = appInfo.uid,
                 isLocked = isLocked,
                 isHidden = isHidden,
-                isSandboxed = isSandboxed,
-                isDevOptionsHidden = isDevOptionsHidden
+                isSandboxed = isSandboxed
             )
         }
 }
 
 private suspend fun toggleAppLock(context: Context, packageName: String, lock: Boolean) = withContext(Dispatchers.IO) {
     try {
-        val sandboxManager = context.getSystemService(Context.AX_SANDBOX_SERVICE) as? android.app.AxSandboxManager
-        if (sandboxManager == null) {
-            Log.e(TAG, "AxSandboxManager is null!")
-            return@withContext
-        }
-        if (lock) {
-            sandboxManager.addLockedApp(packageName)
-        } else {
-            sandboxManager.removeLockedApp(packageName)
-        }
-        Log.d(TAG, "toggleAppLock completed for $packageName, lock=$lock")
+        val sandboxManager = context.getSystemService(Context.AX_SANDBOX_SERVICE) as? android.app.AxSandboxManager ?: return@withContext
+        if (lock) sandboxManager.addLockedApp(packageName) else sandboxManager.removeLockedApp(packageName)
     } catch (e: Exception) {
         Log.e(TAG, "Error toggling app lock for $packageName", e)
     }
@@ -1973,13 +1978,8 @@ private suspend fun toggleAppLock(context: Context, packageName: String, lock: B
 
 private suspend fun toggleAppHidden(context: Context, packageName: String, hidden: Boolean) = withContext(Dispatchers.IO) {
     try {
-        val sandboxManager = context.getSystemService(Context.AX_SANDBOX_SERVICE) as? android.app.AxSandboxManager
-        if (sandboxManager == null) {
-            Log.e(TAG, "AxSandboxManager is null!")
-            return@withContext
-        }
+        val sandboxManager = context.getSystemService(Context.AX_SANDBOX_SERVICE) as? android.app.AxSandboxManager ?: return@withContext
         sandboxManager.setPackageHidden(packageName, hidden)
-        Log.d(TAG, "toggleAppHidden completed for $packageName, hidden=$hidden")
     } catch (e: Exception) {
         Log.e(TAG, "Error toggling app hidden for $packageName", e)
     }
@@ -1987,37 +1987,10 @@ private suspend fun toggleAppHidden(context: Context, packageName: String, hidde
 
 private suspend fun toggleAppSandboxed(context: Context, packageName: String, sandboxed: Boolean) = withContext(Dispatchers.IO) {
     try {
-        val sandboxManager = context.getSystemService(Context.AX_SANDBOX_SERVICE) as? android.app.AxSandboxManager
-        if (sandboxManager == null) {
-            Log.e(TAG, "AxSandboxManager is null!")
-            return@withContext
-        }
-        if (sandboxed) {
-            sandboxManager.addSandboxedPackage(packageName)
-        } else {
-            sandboxManager.removeSandboxedPackage(packageName)
-        }
-        Log.d(TAG, "toggleAppSandboxed completed for $packageName, sandboxed=$sandboxed")
+        val sandboxManager = context.getSystemService(Context.AX_SANDBOX_SERVICE) as? android.app.AxSandboxManager ?: return@withContext
+        if (sandboxed) sandboxManager.addSandboxedPackage(packageName) else sandboxManager.removeSandboxedPackage(packageName)
     } catch (e: Exception) {
         Log.e(TAG, "Error toggling app sandboxed for $packageName", e)
-    }
-}
-
-private suspend fun toggleDevOptionsHidden(context: Context, packageName: String, hidden: Boolean) = withContext(Dispatchers.IO) {
-    try {
-        val sandboxManager = context.getSystemService(Context.AX_SANDBOX_SERVICE) as? android.app.AxSandboxManager
-        if (sandboxManager == null) {
-            Log.e(TAG, "AxSandboxManager is null!")
-            return@withContext
-        }
-        if (hidden) {
-            sandboxManager.addDevOptionsHiddenPackage(packageName)
-        } else {
-            sandboxManager.removeDevOptionsHiddenPackage(packageName)
-        }
-        Log.d(TAG, "toggleDevOptionsHidden completed for $packageName, hidden=$hidden")
-    } catch (e: Exception) {
-        Log.e(TAG, "Error toggling dev options hidden for $packageName", e)
     }
 }
 
@@ -2027,8 +2000,6 @@ private fun launchApp(context: Context, packageName: String) {
         if (intent != null) {
             intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
-        } else {
-            Log.w(TAG, "No launch intent for $packageName")
         }
     } catch (e: Exception) {
         Log.e(TAG, "Error launching $packageName", e)

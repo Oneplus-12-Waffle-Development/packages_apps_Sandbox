@@ -1,21 +1,52 @@
+/*
+ * Copyright (C) 2025-2026 AxionOS Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.android.axion.sandbox.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.android.axion.compose.scaffold.AxionScaffold
+import com.android.axion.sandbox.R
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ForgotPasswordScreen(
     securityQuestion: String,
@@ -26,98 +57,67 @@ fun ForgotPasswordScreen(
     var answer by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
     var showConfirmDialog by remember { mutableStateOf(false) }
-    
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.surface,
-                        MaterialTheme.colorScheme.surfaceContainerLow
-                    )
-                )
-            )
-    ) {
+
+    AxionScaffold(
+        title = stringResource(R.string.forgot_password_title),
+        onBackClick = onBack
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .padding(24.dp)
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
         ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.padding(bottom = 16.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back"
-                )
-            }
-            
-            Text(
-                text = "Forgot Password",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
-                text = "Answer your security question to reset your password",
+                text = stringResource(R.string.forgot_password_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
+
             Spacer(modifier = Modifier.height(32.dp))
-            
-            Card(
+
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                )
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Security Question",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
+                        text = stringResource(R.string.recovery_question_label),
+                        style = MaterialTheme.typography.labelMediumEmphasized,
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = securityQuestion,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Medium
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             OutlinedTextField(
                 value = answer,
-                onValueChange = { 
+                onValueChange = {
                     answer = it
                     isError = false
                 },
-                label = { Text("Your Answer") },
+                label = { Text(stringResource(R.string.recovery_answer_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 isError = isError,
                 supportingText = if (isError) {
-                    { Text("Incorrect answer. Please try again.") }
+                    { Text(stringResource(R.string.forgot_password_error)) }
                 } else null,
-                shape = RoundedCornerShape(12.dp)
+                shape = MaterialTheme.shapes.large
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             Button(
                 onClick = {
                     if (onAnswerSubmit(answer)) {
@@ -130,16 +130,16 @@ fun ForgotPasswordScreen(
                     .fillMaxWidth()
                     .height(56.dp),
                 enabled = answer.isNotBlank(),
-                shape = RoundedCornerShape(16.dp)
+                shape = MaterialTheme.shapes.extraLarge
             ) {
                 Text(
-                    text = "Verify Answer",
+                    text = stringResource(R.string.forgot_password_verify),
                     style = MaterialTheme.typography.titleMedium
                 )
             }
         }
     }
-    
+
     if (showConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },
@@ -150,17 +150,17 @@ fun ForgotPasswordScreen(
                     tint = MaterialTheme.colorScheme.error
                 )
             },
-            title = { 
+            title = {
                 Text(
-                    text = "Reset Password?",
+                    text = stringResource(R.string.forgot_password_reset_title),
                     textAlign = TextAlign.Center
-                ) 
+                )
             },
-            text = { 
+            text = {
                 Text(
-                    text = "This will clear your current password and you'll need to set up a new one. All private app data will remain intact.",
+                    text = stringResource(R.string.forgot_password_reset_message),
                     textAlign = TextAlign.Center
-                ) 
+                )
             },
             confirmButton = {
                 Button(
@@ -172,12 +172,12 @@ fun ForgotPasswordScreen(
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Reset")
+                    Text(stringResource(R.string.action_reset))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.action_cancel))
                 }
             }
         )

@@ -17,10 +17,8 @@ package com.android.axion.sandbox
 
 import android.app.ActivityManager
 import android.content.Context
-import android.hardware.display.DisplayManager
 import android.text.TextUtils
 import android.util.Log
-import android.view.Display
 import java.lang.reflect.Method
 
 object WindowModeUtil {
@@ -32,20 +30,8 @@ object WindowModeUtil {
     }
     
     @JvmStatic
-    fun isAppInFreeformDisplay(context: Context): Boolean {
-        return try {
-            val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager
-            if (displayManager != null) {
-                val display = context.display ?: displayManager.getDisplay(Display.DEFAULT_DISPLAY)
-                val displayId = display?.displayId ?: Display.DEFAULT_DISPLAY
-                displayManager.isFreeformDisplayId(displayId)
-            } else {
-                false
-            }
-        } catch (e: Exception) {
-            Log.d(TAG, "isAppInFreeformDisplay Exception: ${e}")
-            false
-        }
+    fun isAppInFreeformMode(): Boolean {
+        return isAppInWindowMode("inFreeformWindowingMode")
     }
 
     @JvmStatic

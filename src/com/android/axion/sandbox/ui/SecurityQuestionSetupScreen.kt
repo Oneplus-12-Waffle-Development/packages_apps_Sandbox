@@ -1,25 +1,58 @@
+/*
+ * Copyright (C) 2025-2026 AxionOS Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.android.axion.sandbox.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.android.axion.compose.scaffold.AxionScaffold
+import com.android.axion.sandbox.R
 import com.android.axion.sandbox.security.SandboxSecurityManager
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SecurityQuestionSetupScreen(
     onComplete: (question: String, answer: String) -> Unit,
@@ -29,104 +62,66 @@ fun SecurityQuestionSetupScreen(
     var selectedQuestion by remember { mutableStateOf<String?>(null) }
     var answer by remember { mutableStateOf("") }
     var showQuestionPicker by remember { mutableStateOf(false) }
-    
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.surface,
-                        MaterialTheme.colorScheme.surfaceContainerLow
-                    )
-                )
-            )
-    ) {
+
+    AxionScaffold(
+        title = stringResource(R.string.recovery_title),
+        onBackClick = onBack
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
+                .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.padding(bottom = 16.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back"
-                )
-            }
-            
-            Text(
-                text = "Recovery Option",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
-                text = "Set up a security question in case you forget your password",
+                text = stringResource(R.string.recovery_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             Text(
-                text = "Security Question",
-                style = MaterialTheme.typography.labelLarge,
+                text = stringResource(R.string.recovery_question_label),
+                style = MaterialTheme.typography.labelLargeEmphasized,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { showQuestionPicker = true },
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                )
+
+            Surface(
+                onClick = { showQuestionPicker = true },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceBright
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = selectedQuestion ?: "Select a question",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (selectedQuestion != null) 
-                            MaterialTheme.colorScheme.onSurface 
-                        else 
-                            MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                Text(
+                    text = selectedQuestion ?: stringResource(R.string.recovery_question_placeholder),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (selectedQuestion != null)
+                        MaterialTheme.colorScheme.onSurface
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(16.dp)
+                )
             }
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             OutlinedTextField(
                 value = answer,
                 onValueChange = { answer = it },
-                label = { Text("Your Answer") },
+                label = { Text(stringResource(R.string.recovery_answer_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 enabled = selectedQuestion != null,
-                shape = RoundedCornerShape(12.dp)
+                shape = MaterialTheme.shapes.large
             )
-            
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             Button(
                 onClick = {
                     selectedQuestion?.let { q ->
@@ -137,43 +132,45 @@ fun SecurityQuestionSetupScreen(
                     .fillMaxWidth()
                     .height(56.dp),
                 enabled = selectedQuestion != null && answer.isNotBlank(),
-                shape = RoundedCornerShape(16.dp)
+                shape = MaterialTheme.shapes.extraLarge
             ) {
                 Text(
-                    text = "Continue",
+                    text = stringResource(R.string.action_continue),
                     style = MaterialTheme.typography.titleMedium
                 )
             }
-            
+
             if (onSkip != null) {
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 TextButton(
                     onClick = onSkip,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Skip for now",
+                        text = stringResource(R.string.action_skip),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
-    
+
     if (showQuestionPicker) {
         AlertDialog(
             onDismissRequest = { showQuestionPicker = false },
-            title = { Text("Select a Question") },
+            title = { Text(stringResource(R.string.recovery_question_picker_title)) },
             text = {
                 Column {
                     SandboxSecurityManager.SECURITY_QUESTIONS.forEach { question ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { 
+                                .clip(MaterialTheme.shapes.medium)
+                                .clickable {
                                     selectedQuestion = question
                                     showQuestionPicker = false
                                 }
@@ -188,7 +185,7 @@ fun SecurityQuestionSetupScreen(
                             if (selectedQuestion == question) {
                                 Icon(
                                     imageVector = Icons.Filled.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -199,7 +196,7 @@ fun SecurityQuestionSetupScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showQuestionPicker = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.action_cancel))
                 }
             }
         )
