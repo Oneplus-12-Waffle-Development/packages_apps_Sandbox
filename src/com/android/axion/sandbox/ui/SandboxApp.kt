@@ -99,7 +99,9 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -621,9 +623,17 @@ private fun SpoofSettingsDropdown(
     val accentColor = MaterialTheme.colorScheme.tertiary
     var expanded by rememberSaveable { mutableStateOf(false) }
 
-    var spoofEnabled by remember(app.packageName) {
-        mutableStateOf(sandboxManager.isSandboxSettingsSpoofEnabled(app.packageName))
+    val enabledSettings = remember(app.packageName) {
+        mutableStateMapOf<String, Boolean>().apply {
+            SPOOF_SETTINGS.forEach { entry ->
+                val key = "${entry.database}:${entry.key}"
+                put(key, sandboxManager.isSpoofSettingEnabled(
+                        app.packageName, entry.key, entry.database))
+            }
+        }
     }
+
+    val hasAnyEnabled by remember { derivedStateOf { enabledSettings.values.any { it } } }
 
     Column {
         ExpandableDropdownHeader(
@@ -631,7 +641,7 @@ private fun SpoofSettingsDropdown(
             activeIcon = Icons.Filled.VisibilityOff,
             title = stringResource(R.string.spoof_settings_title),
             isExpanded = expanded,
-            hasActiveItems = spoofEnabled,
+            hasActiveItems = hasAnyEnabled,
             color = accentColor,
             onToggleExpand = { expanded = !expanded }
         )
@@ -646,16 +656,20 @@ private fun SpoofSettingsDropdown(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 SPOOF_SETTINGS.forEach { entry ->
+                    val key = "${entry.database}:${entry.key}"
+                    val isEnabled = enabledSettings[key] ?: false
                     SubSettingRow(
                         title = "settings.${entry.database}.${entry.key}",
                         description = stringResource(entry.descriptionRes),
-                        isEnabled = spoofEnabled,
+                        isEnabled = isEnabled,
                         accentColor = accentColor,
                         onToggle = {
-                            spoofEnabled = !spoofEnabled
+                            val newValue = !isEnabled
+                            enabledSettings[key] = newValue
                             scope.launch(Dispatchers.IO) {
-                                sandboxManager.setSandboxSettingsSpoofEnabled(
-                                        app.packageName, spoofEnabled)
+                                sandboxManager.setSpoofSettingEnabled(
+                                        app.packageName, entry.key,
+                                        entry.database, newValue)
                             }
                         }
                     )
