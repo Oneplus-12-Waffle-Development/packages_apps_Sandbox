@@ -19,11 +19,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -33,7 +30,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,8 +39,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -83,7 +77,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -94,7 +87,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -124,8 +116,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.android.axion.compose.preferences.PreferenceGroup
 import com.android.axion.compose.preferences.SettingsType
+import com.android.axion.compose.preferences.SwitchPreference
 import com.android.axion.compose.preferences.rememberSettingsFlow
+import com.android.axion.compose.sheet.BottomSheetDialog
 import com.android.axion.sandbox.R
 import com.android.internal.app.IHiddenNotificationListener
 import com.android.internal.app.HiddenNotificationInfo
@@ -138,6 +133,7 @@ import kotlinx.coroutines.withContext
 
 private const val TAG = "SandboxApp"
 private const val SANDBOX_CONFIG_KEY = "sandbox_config"
+private const val SHEET_HEIGHT_FRACTION = 0.75f
 
 data class AppInfo(
     val packageName: String,
@@ -494,121 +490,108 @@ private fun SandboxOptionsDropdown(
         mutableStateOf(sandboxManager?.isSandboxDataIsolationEnabled(app.packageName) == true)
     }
 
-    Column {
-        ExpandableDropdownHeader(
-            icon = Icons.Outlined.Security,
-            activeIcon = Icons.Filled.Security,
-            title = stringResource(R.string.sandbox_options_title),
-            isExpanded = expanded,
-            hasActiveItems = app.isSandboxed,
-            color = accentColor,
-            onToggleExpand = { expanded = !expanded }
-        )
-
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            Column(
-                modifier = Modifier.padding(start = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                SubSettingRow(
-                    title = stringResource(R.string.action_isolate),
-                    description = stringResource(R.string.isolate_app_description),
-                    isEnabled = app.isSandboxed,
-                    accentColor = accentColor,
-                    onToggle = { onSandboxToggle(app) }
-                )
-
-                SubSettingRow(
-                    title = stringResource(R.string.restrict_internet_title),
-                    description = stringResource(R.string.restrict_internet_description),
-                    isEnabled = restrictInternet,
-                    accentColor = accentColor,
-                    onToggle = {
-                        if (sandboxManager == null) return@SubSettingRow
-                        restrictInternet = !restrictInternet
-                        scope.launch(Dispatchers.IO) {
-                            val current = sandboxManager.getRestrictedGids(app.packageName)
-                                    ?.toMutableList() ?: mutableListOf()
-                            if (restrictInternet) {
-                                if (!current.contains(android.app.AxSandboxManager.GID_INET))
-                                    current.add(android.app.AxSandboxManager.GID_INET)
-                            } else {
-                                current.remove(android.app.AxSandboxManager.GID_INET)
+    PreferenceGroup(
+        title = stringResource(R.string.sandbox_options_title),
+        collapsible = true,
+        initiallyExpanded = expanded,
+    ) {
+        item {
+            SwitchPreference(
+                title = stringResource(R.string.action_isolate),
+                summary = stringResource(R.string.isolate_app_description),
+                checked = app.isSandboxed,
+                onCheckedChange = { onSandboxToggle(app) },
+            )
+        }
+        item {
+            SwitchPreference(
+                title = stringResource(R.string.restrict_internet_title),
+                summary = stringResource(R.string.restrict_internet_description),
+                checked = restrictInternet,
+                onCheckedChange = {
+                    if (sandboxManager == null) return@SwitchPreference
+                    restrictInternet = !restrictInternet
+                    scope.launch(Dispatchers.IO) {
+                        val current = sandboxManager.getRestrictedGids(app.packageName)
+                                ?.toMutableList() ?: mutableListOf()
+                        if (restrictInternet) {
+                            if (!current.contains(android.app.AxSandboxManager.GID_INET))
+                                current.add(android.app.AxSandboxManager.GID_INET)
+                        } else {
+                            current.remove(android.app.AxSandboxManager.GID_INET)
+                        }
+                        sandboxManager.setRestrictedGids(app.packageName,
+                                current.toIntArray())
+                    }
+                },
+            )
+        }
+        item {
+            SwitchPreference(
+                title = stringResource(R.string.restrict_storage_title),
+                summary = stringResource(R.string.restrict_storage_description),
+                checked = restrictStorage,
+                onCheckedChange = {
+                    if (sandboxManager == null) return@SwitchPreference
+                    restrictStorage = !restrictStorage
+                    scope.launch(Dispatchers.IO) {
+                        val current = sandboxManager.getRestrictedGids(app.packageName)
+                                ?.toMutableList() ?: mutableListOf()
+                        val storageGids = android.app.AxSandboxManager.STORAGE_GIDS
+                        if (restrictStorage) {
+                            for (gid in storageGids) {
+                                if (!current.contains(gid)) current.add(gid)
                             }
-                            sandboxManager.setRestrictedGids(app.packageName,
-                                    current.toIntArray())
+                        } else {
+                            current.removeAll(storageGids.toSet())
                         }
+                        sandboxManager.setRestrictedGids(app.packageName,
+                                current.toIntArray())
                     }
-                )
-
-                SubSettingRow(
-                    title = stringResource(R.string.restrict_storage_title),
-                    description = stringResource(R.string.restrict_storage_description),
-                    isEnabled = restrictStorage,
-                    accentColor = accentColor,
-                    onToggle = {
-                        if (sandboxManager == null) return@SubSettingRow
-                        restrictStorage = !restrictStorage
-                        scope.launch(Dispatchers.IO) {
-                            val current = sandboxManager.getRestrictedGids(app.packageName)
-                                    ?.toMutableList() ?: mutableListOf()
-                            val storageGids = android.app.AxSandboxManager.STORAGE_GIDS
-                            if (restrictStorage) {
-                                for (gid in storageGids) {
-                                    if (!current.contains(gid)) current.add(gid)
-                                }
-                            } else {
-                                current.removeAll(storageGids.toSet())
-                            }
-                            sandboxManager.setRestrictedGids(app.packageName,
-                                    current.toIntArray())
-                        }
+                },
+            )
+        }
+        item {
+            SwitchPreference(
+                title = stringResource(R.string.data_isolation_title),
+                summary = stringResource(R.string.data_isolation_description),
+                checked = dataIsolation,
+                onCheckedChange = {
+                    if (sandboxManager == null) return@SwitchPreference
+                    dataIsolation = !dataIsolation
+                    scope.launch(Dispatchers.IO) {
+                        sandboxManager.setSandboxDataIsolationEnabled(
+                                app.packageName, dataIsolation)
                     }
-                )
-
-                SubSettingRow(
-                    title = stringResource(R.string.data_isolation_title),
-                    description = stringResource(R.string.data_isolation_description),
-                    isEnabled = dataIsolation,
-                    accentColor = accentColor,
-                    onToggle = {
-                        if (sandboxManager == null) return@SubSettingRow
-                        dataIsolation = !dataIsolation
-                        scope.launch(Dispatchers.IO) {
-                            sandboxManager.setSandboxDataIsolationEnabled(
-                                    app.packageName, dataIsolation)
-                        }
-                    }
-                )
-            }
+                },
+            )
         }
     }
 }
 
 private data class SpoofSettingEntry(
     val key: String,
-    val database: String,
     val titleRes: Int,
     val descriptionRes: Int
 )
 
 private val SPOOF_SETTINGS = listOf(
-    SpoofSettingEntry("adb_enabled", "global",
+    SpoofSettingEntry("adb_enabled",
             R.string.spoof_adb_enabled, R.string.spoof_adb_enabled_description),
-    SpoofSettingEntry("development_settings_enabled", "global",
+    SpoofSettingEntry("development_settings_enabled",
             R.string.spoof_dev_settings_enabled, R.string.spoof_dev_settings_enabled_description),
-    SpoofSettingEntry("adb_wifi_enabled", "global",
+    SpoofSettingEntry("adb_wifi_enabled",
             R.string.spoof_adb_wifi_enabled, R.string.spoof_adb_wifi_enabled_description),
-    SpoofSettingEntry("package_verifier_user_consent", "global",
+    SpoofSettingEntry("package_verifier_user_consent",
             R.string.spoof_package_verifier, R.string.spoof_package_verifier_description),
-    SpoofSettingEntry("verify_apps_over_usb", "global",
-            R.string.spoof_verify_apps_usb, R.string.spoof_verify_apps_usb_description),
-    SpoofSettingEntry("development_settings_enabled", "secure",
-            R.string.spoof_dev_settings_enabled, R.string.spoof_dev_settings_enabled_description)
+    SpoofSettingEntry("verify_apps_over_usb",
+            R.string.spoof_verify_apps_usb, R.string.spoof_verify_apps_usb_description)
+)
+
+private val SPOOF_ACCESSIBILITY_KEYS = listOf(
+    "accessibility_enabled",
+    "enabled_accessibility_services",
+    "accessibility_display_inversion_enabled"
 )
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -626,168 +609,58 @@ private fun SpoofSettingsDropdown(
     val enabledSettings = remember(app.packageName) {
         mutableStateMapOf<String, Boolean>().apply {
             SPOOF_SETTINGS.forEach { entry ->
-                val key = "${entry.database}:${entry.key}"
-                put(key, sandboxManager.isSpoofSettingEnabled(
-                        app.packageName, entry.key, entry.database))
+                put(entry.key, sandboxManager.isSpoofSettingEnabled(
+                        app.packageName, entry.key))
             }
+            put("accessibility_spoof", SPOOF_ACCESSIBILITY_KEYS.all { key ->
+                sandboxManager.isSpoofSettingEnabled(app.packageName, key)
+            })
         }
     }
 
     val hasAnyEnabled by remember { derivedStateOf { enabledSettings.values.any { it } } }
 
-    Column {
-        ExpandableDropdownHeader(
-            icon = Icons.Outlined.VisibilityOff,
-            activeIcon = Icons.Filled.VisibilityOff,
-            title = stringResource(R.string.spoof_settings_title),
-            isExpanded = expanded,
-            hasActiveItems = hasAnyEnabled,
-            color = accentColor,
-            onToggleExpand = { expanded = !expanded }
-        )
-
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            Column(
-                modifier = Modifier.padding(start = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                SPOOF_SETTINGS.forEach { entry ->
-                    val key = "${entry.database}:${entry.key}"
-                    val isEnabled = enabledSettings[key] ?: false
-                    SubSettingRow(
-                        title = "settings.${entry.database}.${entry.key}",
-                        description = stringResource(entry.descriptionRes),
-                        isEnabled = isEnabled,
-                        accentColor = accentColor,
-                        onToggle = {
-                            val newValue = !isEnabled
-                            enabledSettings[key] = newValue
-                            scope.launch(Dispatchers.IO) {
-                                sandboxManager.setSpoofSettingEnabled(
-                                        app.packageName, entry.key,
-                                        entry.database, newValue)
-                            }
+    PreferenceGroup(
+        title = stringResource(R.string.spoof_settings_title),
+        collapsible = true,
+        initiallyExpanded = expanded,
+    ) {
+        SPOOF_SETTINGS.forEach { entry ->
+            item {
+                val isEnabled = enabledSettings[entry.key] ?: false
+                SwitchPreference(
+                    title = stringResource(entry.titleRes),
+                    summary = stringResource(entry.descriptionRes),
+                    checked = isEnabled,
+                    onCheckedChange = {
+                        val newValue = !isEnabled
+                        enabledSettings[entry.key] = newValue
+                        scope.launch(Dispatchers.IO) {
+                            sandboxManager.setSpoofSettingEnabled(
+                                    app.packageName, entry.key, newValue)
                         }
-                    )
-                }
+                    },
+                )
             }
         }
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun ExpandableDropdownHeader(
-    icon: ImageVector,
-    activeIcon: ImageVector,
-    title: String,
-    isExpanded: Boolean,
-    hasActiveItems: Boolean,
-    color: Color,
-    onToggleExpand: () -> Unit,
-    trailingContent: @Composable (() -> Unit)? = null
-) {
-    val motionScheme = MaterialTheme.motionScheme
-    val backgroundColor by animateColorAsState(
-        targetValue = if (hasActiveItems) color.copy(alpha = 0.12f) else Color.Transparent,
-        animationSpec = motionScheme.defaultEffectsSpec(),
-        label = "dropdownBg"
-    )
-    val rotationAngle by animateFloatAsState(
-        targetValue = if (isExpanded) 180f else 0f,
-        animationSpec = motionScheme.defaultSpatialSpec(),
-        label = "dropdownChevron"
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .background(backgroundColor)
-            .clickable(onClick = onToggleExpand)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = if (hasActiveItems) activeIcon else icon,
-            contentDescription = null,
-            tint = if (hasActiveItems) color else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
-        )
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (hasActiveItems) color else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
-        )
-
-        if (trailingContent != null) {
-            trailingContent()
-            Spacer(modifier = Modifier.width(8.dp))
-        }
-
-        Icon(
-            imageVector = Icons.Filled.ExpandMore,
-            contentDescription = null,
-            tint = if (hasActiveItems) color else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .size(20.dp)
-                .graphicsLayer { rotationZ = rotationAngle }
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun SubSettingRow(
-    title: String,
-    description: String,
-    isEnabled: Boolean,
-    accentColor: Color,
-    onToggle: () -> Unit
-) {
-    val motionScheme = MaterialTheme.motionScheme
-    val bgColor by animateColorAsState(
-        targetValue = if (isEnabled) accentColor.copy(alpha = 0.08f)
-        else Color.Transparent,
-        animationSpec = motionScheme.defaultEffectsSpec(),
-        label = "subBg"
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .background(bgColor)
-            .clickable { onToggle() }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (isEnabled) accentColor
-                else MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        item {
+            val accessibilityEnabled = enabledSettings["accessibility_spoof"] ?: false
+            SwitchPreference(
+                title = stringResource(R.string.spoof_accessibility),
+                summary = stringResource(R.string.spoof_accessibility_description),
+                checked = accessibilityEnabled,
+                onCheckedChange = {
+                    val newValue = !accessibilityEnabled
+                    enabledSettings["accessibility_spoof"] = newValue
+                    scope.launch(Dispatchers.IO) {
+                        SPOOF_ACCESSIBILITY_KEYS.forEach { key ->
+                            sandboxManager.setSpoofSettingEnabled(
+                                    app.packageName, key, newValue)
+                        }
+                    }
+                },
             )
         }
-        Spacer(Modifier.width(12.dp))
-        Switch(
-            checked = isEnabled,
-            onCheckedChange = { onToggle() }
-        )
     }
 }
 
@@ -1023,7 +896,6 @@ fun AppsTab(
     val scope = rememberCoroutineScope()
     var selectedApp by remember { mutableStateOf<AppInfo?>(null) }
     var showBottomSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState()
 
     val privateApps = remember(apps) { apps.filter { it.isLocked || it.isHidden } }
     val sandboxedApps = remember(apps) { apps.filter { it.isSandboxed && !it.isLocked && !it.isHidden } }
@@ -1052,15 +924,15 @@ fun AppsTab(
         }
     }
 
+    val onSheetDismiss = {
+        showBottomSheet = false
+        selectedApp = null
+    }
+
     if (showBottomSheet && selectedApp != null) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                showBottomSheet = false
-                selectedApp = null
-            },
-            sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surfaceBright,
-            shape = MaterialTheme.shapes.extraLarge
+        BottomSheetDialog(
+            onDismiss = onSheetDismiss,
+            heightFraction = SHEET_HEIGHT_FRACTION,
         ) {
             AppQuickActionsSheet(
                 app = selectedApp!!,
@@ -1068,14 +940,7 @@ fun AppsTab(
                 onHideToggle = onHideToggle,
                 onSandboxToggle = onSandboxToggle,
                 onLaunch = { app -> launchApp(context, app.packageName) },
-                onDismiss = {
-                    scope.launch { sheetState.hide() }.invokeOnCompletion {
-                        if (!sheetState.isVisible) {
-                            showBottomSheet = false
-                            selectedApp = null
-                        }
-                    }
-                }
+                onDismiss = onSheetDismiss,
             )
         }
     }
@@ -1478,137 +1343,99 @@ private fun AppQuickActionsSheet(
         app.icon.toBitmap(80, 80)
     }
     val context = LocalContext.current
+    val sandboxManager = remember {
+        context.getSystemService(android.app.AxSandboxManager::class.java)
+    }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .wrapContentHeight()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp)
-            .padding(bottom = 32.dp)
-            .navigationBarsPadding()
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = BitmapPainter(bitmap.asImageBitmap()),
-                contentDescription = app.label,
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(MaterialTheme.shapes.large)
-            )
+        item {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceBright,
+                shape = MaterialTheme.shapes.extraLarge,
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Image(
+                        painter = BitmapPainter(bitmap.asImageBitmap()),
+                        contentDescription = app.label,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(MaterialTheme.shapes.large)
+                    )
 
-            Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = app.label,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = app.packageName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = app.label,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = app.packageName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
 
-            FilledTonalIconButton(onClick = { onLaunch(app) }) {
-                Icon(
-                    imageVector = Icons.Default.OpenInNew,
-                    contentDescription = stringResource(R.string.action_launch)
-                )
+                    FilledTonalIconButton(onClick = { onLaunch(app) }) {
+                        Icon(
+                            imageVector = Icons.Default.OpenInNew,
+                            contentDescription = stringResource(R.string.action_launch)
+                        )
+                    }
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        item {
+                PreferenceGroup {
+                    item {
+                        SwitchPreference(
+                            title = stringResource(R.string.action_lock),
+                            checked = app.isLocked,
+                            onCheckedChange = { onLockToggle(app) },
+                            icon = if (app.isLocked) Icons.Filled.Lock else Icons.Outlined.Lock,
+                        )
+                    }
+                    item {
+                        SwitchPreference(
+                            title = stringResource(R.string.action_hide),
+                            checked = app.isHidden,
+                            onCheckedChange = { onHideToggle(app) },
+                            icon = if (app.isHidden) Icons.Filled.VisibilityOff
+                                else Icons.Outlined.VisibilityOff,
+                        )
+                    }
+                }
+            }
 
-        QuickActionRow(
-            icon = Icons.Outlined.Lock,
-            activeIcon = Icons.Filled.Lock,
-            title = stringResource(R.string.action_lock),
-            isEnabled = app.isLocked,
-            color = MaterialTheme.colorScheme.primary,
-            onToggle = { onLockToggle(app) }
-        )
+            item {
+                SandboxOptionsDropdown(
+                    app = app,
+                    sandboxManager = sandboxManager,
+                    onSandboxToggle = onSandboxToggle
+                )
+            }
 
-        QuickActionRow(
-            icon = Icons.Outlined.VisibilityOff,
-            activeIcon = Icons.Filled.VisibilityOff,
-            title = stringResource(R.string.action_hide),
-            isEnabled = app.isHidden,
-            color = MaterialTheme.colorScheme.tertiary,
-            onToggle = { onHideToggle(app) }
-        )
-
-        val sandboxManager = remember {
-            context.getSystemService(android.app.AxSandboxManager::class.java)
+            item {
+                SpoofSettingsDropdown(
+                    app = app,
+                    sandboxManager = sandboxManager
+                )
+            }
         }
-
-        SandboxOptionsDropdown(
-            app = app,
-            sandboxManager = sandboxManager,
-            onSandboxToggle = onSandboxToggle
-        )
-
-        SpoofSettingsDropdown(
-            app = app,
-            sandboxManager = sandboxManager
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun QuickActionRow(
-    icon: ImageVector,
-    activeIcon: ImageVector,
-    title: String,
-    isEnabled: Boolean,
-    color: Color,
-    onToggle: () -> Unit
-) {
-    val motionScheme = MaterialTheme.motionScheme
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isEnabled) color.copy(alpha = 0.12f) else Color.Transparent,
-        animationSpec = motionScheme.defaultEffectsSpec(),
-        label = "bg"
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .background(backgroundColor)
-            .clickable(onClick = onToggle)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = if (isEnabled) activeIcon else icon,
-            contentDescription = null,
-            tint = if (isEnabled) color else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
-        )
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (isEnabled) color else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
-        )
-
-        Switch(
-            checked = isEnabled,
-            onCheckedChange = { onToggle() }
-        )
-    }
 }
 
 data class HiddenNotification(

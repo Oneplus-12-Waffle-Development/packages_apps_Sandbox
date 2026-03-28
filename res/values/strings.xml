@@ -63,16 +63,18 @@
     <string name="spoof_settings_title">Spoof Settings</string>
     <string name="spoof_dev_settings_title">Spoof Developer Settings</string>
     <string name="spoof_dev_settings_description">Hide developer options, ADB, and USB debugging status from this app</string>
-    <string name="spoof_adb_enabled">ADB Enabled</string>
-    <string name="spoof_adb_enabled_description">Spoof ADB status as disabled</string>
-    <string name="spoof_dev_settings_enabled">Developer Settings</string>
-    <string name="spoof_dev_settings_enabled_description">Spoof developer options as disabled</string>
+    <string name="spoof_adb_enabled">ADB</string>
+    <string name="spoof_adb_enabled_description">Report ADB as disabled</string>
+    <string name="spoof_dev_settings_enabled">Developer Options</string>
+    <string name="spoof_dev_settings_enabled_description">Report developer options as disabled</string>
     <string name="spoof_adb_wifi_enabled">Wireless Debugging</string>
-    <string name="spoof_adb_wifi_enabled_description">Spoof wireless debugging as disabled</string>
-    <string name="spoof_package_verifier">Package Verifier Consent</string>
-    <string name="spoof_package_verifier_description">Spoof package verifier user consent</string>
-    <string name="spoof_verify_apps_usb">Verify Apps over USB</string>
-    <string name="spoof_verify_apps_usb_description">Spoof app verification over USB as disabled</string>
+    <string name="spoof_adb_wifi_enabled_description">Report wireless debugging as disabled</string>
+    <string name="spoof_package_verifier">Package Verifier</string>
+    <string name="spoof_package_verifier_description">Report package verifier consent as denied</string>
+    <string name="spoof_verify_apps_usb">USB App Verification</string>
+    <string name="spoof_verify_apps_usb_description">Report app verification over USB as disabled</string>
+    <string name="spoof_accessibility">Accessibility</string>
+    <string name="spoof_accessibility_description">Report accessibility services as disabled</string>
     <string name="spoof_count_format">%d settings spoofed</string>
 
     <!-- Notifications tab -->
