@@ -1792,7 +1792,7 @@ private suspend fun loadInstalledApps(context: Context): List<AppInfo> = withCon
         }
         .sortedBy { pm.getApplicationLabel(it).toString().lowercase() }
         .map { appInfo ->
-            val isLocked = try { sandboxManager.isAppLocked(appInfo.packageName) ?: false } catch (e: Exception) { false }
+            val isLocked = try { sandboxManager.getAppLockState(appInfo.packageName).hasAppLock() } catch (e: Exception) { false }
             val isHidden = try { sandboxManager.isPackageHidden(appInfo.packageName) ?: false } catch (e: Exception) { false }
             val isSandboxed = try { sandboxManager.isPackageSandboxed(appInfo.packageName) ?: false } catch (e: Exception) { false }
 
