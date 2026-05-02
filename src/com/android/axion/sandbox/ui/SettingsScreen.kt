@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoMode
+import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Help
 import androidx.compose.material.icons.outlined.Info
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.outlined.LockReset
 import androidx.compose.material.icons.outlined.Password
 import androidx.compose.material.icons.outlined.Pattern
 import androidx.compose.material.icons.outlined.Pin
+import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -65,7 +67,9 @@ fun SettingsScreen(
     onChangeBiometricEnabled: (Boolean) -> Unit,
     onChangePreferBiometric: (Boolean) -> Unit,
     onSetupRecovery: () -> Unit,
-    onForgotPassword: () -> Unit
+    onForgotPassword: () -> Unit,
+    onBackupAppList: () -> Unit,
+    onRestoreAppList: () -> Unit
 ) {
     val timeoutOptions = listOf(
         "15" to stringResource(R.string.timeout_15s),
@@ -137,9 +141,42 @@ fun SettingsScreen(
 
             item {
                 Spacer(modifier = Modifier.height(24.dp))
+                BackupRestoreSection(
+                    onBackup = onBackupAppList,
+                    onRestore = onRestoreAppList
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
                 AboutSection()
                 Spacer(modifier = Modifier.height(32.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun BackupRestoreSection(
+    onBackup: () -> Unit,
+    onRestore: () -> Unit
+) {
+    PreferenceGroup(title = stringResource(R.string.settings_backup_title)) {
+        item {
+            ClickablePreference(
+                title = stringResource(R.string.settings_backup_applist),
+                summary = stringResource(R.string.settings_backup_applist_summary),
+                icon = Icons.Outlined.Backup,
+                onClick = onBackup
+            )
+        }
+        item {
+            ClickablePreference(
+                title = stringResource(R.string.settings_restore_applist),
+                summary = stringResource(R.string.settings_restore_applist_summary),
+                icon = Icons.Outlined.SettingsBackupRestore,
+                onClick = onRestore
+            )
         }
     }
 }

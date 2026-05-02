@@ -19,10 +19,12 @@ import android.hardware.biometrics.BiometricManager
 import android.hardware.biometrics.BiometricPrompt
 import android.os.Bundle
 import android.os.CancellationSignal
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,13 +34,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.lifecycleScope
+import com.android.axion.sandbox.io.BackupManager
 import com.android.axion.sandbox.security.LockedAppBehavior
 import com.android.axion.sandbox.security.PrivateSectionBehavior
 import com.android.axion.sandbox.security.SecurityType
@@ -52,16 +58,49 @@ import com.android.axion.sandbox.ui.SecurityQuestionSetupScreen
 import com.android.axion.sandbox.ui.SecuritySetupScreen
 import com.android.axion.sandbox.ui.SettingsScreen
 import com.android.axion.sandbox.ui.theme.SandboxTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var securityManager: SandboxSecurityManager
+    private lateinit var backupManager: BackupManager
+
+    private val createBackupLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            lifecycleScope.launch {
+                val success = backupManager.exportConfig(it)
+                if (success) {
+                    Toast.makeText(this@MainActivity, R.string.backup_success, Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@MainActivity, R.string.backup_error, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private val restoreBackupLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            lifecycleScope.launch {
+                val success = backupManager.importConfig(it)
+                if (success) {
+                    Toast.makeText(this@MainActivity, R.string.restore_success, Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@MainActivity, R.string.restore_error, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         securityManager = SandboxSecurityManager(this)
+        backupManager = BackupManager(this)
 
         setContent {
             SandboxTheme {
@@ -73,6 +112,12 @@ class MainActivity : ComponentActivity() {
                         securityManager = securityManager,
                         onShowBiometricPrompt = { onSuccess ->
                             showBiometricPrompt(onSuccess)
+                        },
+                        onBackupAppList = {
+                            createBackupLauncher.launch("sandbox_config.json")
+                        },
+                        onRestoreAppList = {
+                            restoreBackupLauncher.launch(arrayOf("application/json"))
                         }
                     )
                 }
@@ -119,7 +164,9 @@ enum class SandboxScreen {
 @Composable
 fun SandboxNavigation(
     securityManager: SandboxSecurityManager,
-    onShowBiometricPrompt: (() -> Unit) -> Unit
+    onShowBiometricPrompt: (() -> Unit) -> Unit,
+    onBackupAppList: () -> Unit,
+    onRestoreAppList: () -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -475,7 +522,9 @@ fun SandboxNavigation(
                 onForgotPassword = {
                     forgotPasswordReturnScreen = SandboxScreen.SETTINGS
                     currentScreen = SandboxScreen.FORGOT_PASSWORD
-                }
+                },
+                onBackupAppList = onBackupAppList,
+                onRestoreAppList = onRestoreAppList
             )
         }
 
