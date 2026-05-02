@@ -226,7 +226,7 @@
     <string name="settings_timeout_title">Lock Timeout</string>
     <string name="settings_about_title">ABOUT</string>
     <string name="settings_version">Version</string>
-    <string name="settings_version_value">1.0.0</string>
+    <string name="settings_version_value">2.0.0</string>
 
     <!-- Backup and Restore -->
     <string name="settings_backup_title">DATA &amp; BACKUP</string>
