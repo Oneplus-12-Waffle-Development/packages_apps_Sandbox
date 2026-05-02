@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <permissions>
     <privapp-permissions package="com.android.axion.sandbox">
+        <permission name="android.permission.MANAGE_EXTERNAL_STORAGE" />
         <permission name="android.permission.WRITE_SECURE_SETTINGS" />
         <permission name="android.permission.MANAGE_APP_OPS_MODES" />
         <permission name="android.permission.UPDATE_APP_OPS_STATS" />

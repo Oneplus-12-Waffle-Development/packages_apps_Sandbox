@@ -52,6 +52,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Notifications
@@ -61,6 +62,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Security
@@ -156,7 +158,11 @@ fun SandboxApp(
     isPrivateAreaExpanded: Boolean = false,
     onPrivateAreaExpandChange: (Boolean) -> Unit = {},
     isSecuritySetup: Boolean = false,
-    onSetupSecurity: () -> Unit = {}
+    onSetupSecurity: () -> Unit = {},
+    selectedTabIndex: Int = 0,
+    onTabIndexChange: (Int) -> Unit = {},
+    isPickingFiles: Boolean = false,
+    onPickingFilesChange: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -168,15 +174,13 @@ fun SandboxApp(
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedApp by remember { mutableStateOf<AppInfo?>(null) }
 
-    var savedTabIndex by rememberSaveable { mutableStateOf(0) }
-
     val pagerState = rememberPagerState(
-        initialPage = savedTabIndex,
-        pageCount = { 2 }
+        initialPage = selectedTabIndex,
+        pageCount = { 3 }
     )
 
     LaunchedEffect(pagerState.currentPage) {
-        savedTabIndex = pagerState.currentPage
+        onTabIndexChange(pagerState.currentPage)
     }
 
     val reloadApps: () -> Unit = {
@@ -433,6 +437,20 @@ fun SandboxApp(
                             indicatorColor = MaterialTheme.colorScheme.primaryContainer
                         )
                     )
+                    NavigationBarItem(
+                        selected = pagerState.currentPage == 2,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
+                        icon = {
+                            Icon(
+                                imageVector = if (pagerState.currentPage == 2) Icons.Filled.FolderOpen else Icons.Outlined.FolderOpen,
+                                contentDescription = stringResource(R.string.tab_vault)
+                            )
+                        },
+                        label = { Text(stringResource(R.string.tab_vault)) },
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    )
                 }
             }
         ) { paddingValues ->
@@ -457,6 +475,11 @@ fun SandboxApp(
                     1 -> NotificationsTab(
                         isUnlocked = isPrivateUnlocked,
                         onUnlockRequest = onUnlockRequest
+                    )
+                    2 -> VaultTab(
+                        isUnlocked = isPrivateUnlocked,
+                        onUnlockRequest = onUnlockRequest,
+                        onPickingFilesChange = onPickingFilesChange
                     )
                 }
             }

@@ -132,6 +132,9 @@ fun SandboxNavigation(
 
     var isPrivateUnlocked by rememberSaveable { mutableStateOf(false) }
     var isPrivateAreaExpanded by rememberSaveable { mutableStateOf(false) }
+    var selectedTabIndex by rememberSaveable { mutableStateOf(0) }
+    var isPickingFiles by rememberSaveable { mutableStateOf(false) }
+    var lastPauseTime by rememberSaveable { mutableStateOf(0L) }
 
     var currentLockedAppBehavior by remember { mutableStateOf(securityManager.getLockedAppBehavior()) }
     var currentLockedAppTimeout by remember { mutableStateOf(securityManager.getLockedAppTimeout()) }
@@ -148,16 +151,23 @@ fun SandboxNavigation(
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_PAUSE && securityManager.isSetup()) {
-                val privateBehavior = currentPrivateBehaviorState.value
-                when (privateBehavior) {
-                    PrivateSectionBehavior.ON_LEAVE -> {
+            if (event == Lifecycle.Event.ON_PAUSE && securityManager.isSetup() && !isPickingFiles) {
+                lastPauseTime = System.currentTimeMillis()
+            } else if (event == Lifecycle.Event.ON_RESUME && securityManager.isSetup()) {
+                val currentTime = System.currentTimeMillis()
+                val isGracePeriodExpired = (currentTime - lastPauseTime) > 30000 // 30 second grace period
+
+                if (isGracePeriodExpired && isPrivateUnlocked) {
+                    val privateBehavior = currentPrivateBehaviorState.value
+                    if (privateBehavior == PrivateSectionBehavior.ON_LEAVE && !isPickingFiles) {
                         isPrivateUnlocked = false
                         isPrivateAreaExpanded = false
                     }
-                    PrivateSectionBehavior.TIMEOUT -> {}
                 }
-            } else if (event == Lifecycle.Event.ON_RESUME && securityManager.isSetup()) {
+                
+                // Reset state after check
+                isPickingFiles = false
+
                 if (currentPrivateBehaviorState.value == PrivateSectionBehavior.TIMEOUT
                     && securityManager.isTimeoutExpired()) {
                     isPrivateUnlocked = false
@@ -394,7 +404,11 @@ fun SandboxNavigation(
                 isSecuritySetup = securityManager.isSetup(),
                 onSetupSecurity = {
                     currentScreen = SandboxScreen.SETUP_TYPE_SELECTOR
-                }
+                },
+                selectedTabIndex = selectedTabIndex,
+                onTabIndexChange = { index -> selectedTabIndex = index },
+                isPickingFiles = isPickingFiles,
+                onPickingFilesChange = { picking -> isPickingFiles = picking }
             )
         }
 
