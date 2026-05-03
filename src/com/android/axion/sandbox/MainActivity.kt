@@ -170,7 +170,9 @@ fun SandboxNavigation(
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    var currentScreen by rememberSaveable { mutableStateOf(SandboxScreen.MAIN) }
+    var currentScreen by rememberSaveable { 
+        mutableStateOf(if (securityManager.isSetup()) SandboxScreen.MAIN else SandboxScreen.SETUP_TYPE_SELECTOR) 
+    }
     var selectedSecurityType by rememberSaveable { mutableStateOf(SecurityType.PIN) }
     var pendingSecurityType by rememberSaveable { mutableStateOf<SecurityType?>(null) }
     var firstCredential by remember { mutableStateOf<Any?>(null) }
@@ -331,7 +333,8 @@ fun SandboxNavigation(
                 },
                 onSkip = {
                     currentScreen = SandboxScreen.MAIN
-                }
+                },
+                showSkip = securityManager.isSetup()
             )
         }
 

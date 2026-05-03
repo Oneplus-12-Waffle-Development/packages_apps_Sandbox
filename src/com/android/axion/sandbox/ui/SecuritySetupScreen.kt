@@ -55,7 +55,8 @@ import com.android.axion.sandbox.security.SecurityType
 @Composable
 fun SecuritySetupScreen(
     onSecurityTypeSelected: (SecurityType) -> Unit,
-    onSkip: () -> Unit = {}
+    onSkip: () -> Unit = {},
+    showSkip: Boolean = true
 ) {
     Box(
         modifier = Modifier
@@ -129,16 +130,18 @@ fun SecuritySetupScreen(
                 onClick = { onSecurityTypeSelected(SecurityType.PATTERN) }
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            if (showSkip) {
+                Spacer(modifier = Modifier.height(24.dp))
 
-            TextButton(
-                onClick = onSkip,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = stringResource(R.string.action_skip),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                TextButton(
+                    onClick = onSkip,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = stringResource(R.string.action_skip),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
