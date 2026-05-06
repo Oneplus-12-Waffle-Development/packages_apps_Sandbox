@@ -123,6 +123,12 @@ import com.android.axion.compose.preferences.SettingsType
 import com.android.axion.compose.preferences.SwitchPreference
 import com.android.axion.compose.preferences.rememberSettingsFlow
 import com.android.axion.compose.sheet.BottomSheetDialog
+import com.android.axion.compose.applist.AppFilter
+import com.android.axion.compose.applist.rememberAppList
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.FilterList
 import com.android.axion.sandbox.R
 import com.android.internal.app.IHiddenNotificationListener
 import com.android.internal.app.HiddenNotificationInfo
@@ -144,7 +150,8 @@ data class AppInfo(
     val uid: Int,
     val isLocked: Boolean,
     val isHidden: Boolean,
-    val isSandboxed: Boolean
+    val isSandboxed: Boolean,
+    val isSystem: Boolean = false
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -169,8 +176,31 @@ fun SandboxApp(
     val lifecycleOwner = LocalLifecycleOwner.current
     val motionScheme = MaterialTheme.motionScheme
 
-    var apps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    val appsState = rememberAppList(AppFilter.ALL, AppFilter.NO_OVERLAYS)
+    var refreshKey by remember { mutableStateOf(0) }
+    val sandboxManager = remember { context.getSystemService(Context.AX_SANDBOX_SERVICE) as? android.app.AxSandboxManager }
+
+    val apps by remember(appsState.value, refreshKey) {
+        derivedStateOf {
+            appsState.value.map { entry ->
+                val isLocked = try { sandboxManager?.getAppLockState(entry.packageName)?.hasAppLock() ?: false } catch (e: Exception) { false }
+                val isHidden = try { sandboxManager?.isPackageHidden(entry.packageName) ?: false } catch (e: Exception) { false }
+                val isSandboxed = try { sandboxManager?.isPackageSandboxed(entry.packageName) ?: false } catch (e: Exception) { false }
+
+                AppInfo(
+                    packageName = entry.packageName,
+                    label = entry.label,
+                    icon = entry.icon,
+                    uid = 0,
+                    isLocked = isLocked,
+                    isHidden = isHidden,
+                    isSandboxed = isSandboxed,
+                    isSystem = entry.isSystem
+                )
+            }
+        }
+    }
+    val isLoading = appsState.value.isEmpty()
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedApp by remember { mutableStateOf<AppInfo?>(null) }
 
@@ -184,23 +214,16 @@ fun SandboxApp(
     }
 
     val reloadApps: () -> Unit = {
-        scope.launch {
-            apps = loadInstalledApps(context)
-            selectedApp?.let { selected ->
-                selectedApp = apps.find { it.packageName == selected.packageName }
-            }
+        refreshKey++
+        selectedApp?.let { selected ->
+            selectedApp = apps.find { it.packageName == selected.packageName }
         }
-    }
-
-    LaunchedEffect(Unit) {
-        apps = loadInstalledApps(context)
-        isLoading = false
     }
 
     val settingsFlow = rememberSettingsFlow(SettingsType.SECURE)
     LaunchedEffect(settingsFlow) {
         settingsFlow.observe(SANDBOX_CONFIG_KEY).collect {
-            apps = loadInstalledApps(context)
+            reloadApps()
         }
     }
 
@@ -919,10 +942,12 @@ fun AppsTab(
     val scope = rememberCoroutineScope()
     var selectedApp by remember { mutableStateOf<AppInfo?>(null) }
     var showBottomSheet by remember { mutableStateOf(false) }
+    var showSystemApps by rememberSaveable { mutableStateOf(false) }
 
     val privateApps = remember(apps) { apps.filter { it.isLocked || it.isHidden } }
     val sandboxedApps = remember(apps) { apps.filter { it.isSandboxed && !it.isLocked && !it.isHidden } }
-    val regularApps = remember(apps) { apps.filter { !it.isLocked && !it.isHidden && !it.isSandboxed } }
+    val regularApps = remember(apps) { apps.filter { !it.isLocked && !it.isHidden && !it.isSandboxed && !it.isSystem } }
+    val systemApps = remember(apps) { apps.filter { !it.isLocked && !it.isHidden && !it.isSandboxed && it.isSystem } }
 
     val effectiveExpanded = isPrivateUnlocked && isPrivateAreaExpanded
 
@@ -1072,7 +1097,34 @@ fun AppsTab(
                     icon = Icons.Filled.Apps,
                     title = stringResource(R.string.section_all_apps),
                     count = regularApps.size,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    trailing = {
+                        FilterChip(
+                            selected = showSystemApps,
+                            onClick = { showSystemApps = !showSystemApps },
+                            label = {
+                                Text(
+                                    text = stringResource(R.string.show_system_apps),
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            },
+                            leadingIcon = if (showSystemApps) {
+                                {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            } else null,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            modifier = Modifier.height(28.dp)
+                        )
+                    }
                 )
             }
 
@@ -1084,6 +1136,28 @@ fun AppsTab(
                         showBottomSheet = true
                     }
                 )
+            }
+
+            if (showSystemApps && systemApps.isNotEmpty()) {
+                item(span = { GridItemSpan(4) }) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    SectionHeader(
+                        icon = Icons.Default.Security,
+                        title = stringResource(R.string.show_system_apps),
+                        count = systemApps.size,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+
+                items(systemApps, key = { "system_${it.packageName}" }) { app ->
+                    AppGridItem(
+                        app = app,
+                        onClick = {
+                            selectedApp = app
+                            showBottomSheet = true
+                        }
+                    )
+                }
             }
 
             item(span = { GridItemSpan(4) }) {
@@ -1153,7 +1227,8 @@ private fun SectionHeader(
     icon: ImageVector,
     title: String,
     count: Int,
-    color: Color
+    color: Color,
+    trailing: (@Composable () -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
@@ -1168,17 +1243,26 @@ private fun SectionHeader(
             modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLargeEmphasized,
-            color = color
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = "($count)",
-            style = MaterialTheme.typography.bodySmall,
-            color = color.copy(alpha = 0.7f)
-        )
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLargeEmphasized,
+                color = color
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "($count)",
+                style = MaterialTheme.typography.bodySmall,
+                color = color.copy(alpha = 0.7f)
+            )
+        }
+        if (trailing != null) {
+            Spacer(modifier = Modifier.width(12.dp))
+            trailing()
+        }
     }
 }
 
@@ -1789,46 +1873,6 @@ private fun NotificationItem(
             }
         }
     }
-}
-
-private suspend fun loadInstalledApps(context: Context): List<AppInfo> = withContext(Dispatchers.IO) {
-    val pm = context.packageManager
-    val sandboxManager = context.getSystemService(Context.AX_SANDBOX_SERVICE) as? android.app.AxSandboxManager
-
-    if (sandboxManager == null) {
-        Log.e(TAG, "AxSandboxManager not available")
-        return@withContext emptyList()
-    }
-
-    val lockablePackages = sandboxManager.getLockablePackages() ?: emptyList()
-    val hiddenPackages = sandboxManager.getHiddenPackages() ?: emptyList()
-    val allPackages = (lockablePackages + hiddenPackages).toSet()
-
-    allPackages
-        .mapNotNull { packageName ->
-            try {
-                pm.getApplicationInfo(packageName,
-                    PackageManager.GET_META_DATA or PackageManager.MATCH_UNINSTALLED_PACKAGES)
-            } catch (e: PackageManager.NameNotFoundException) {
-                null
-            }
-        }
-        .sortedBy { pm.getApplicationLabel(it).toString().lowercase() }
-        .map { appInfo ->
-            val isLocked = try { sandboxManager.getAppLockState(appInfo.packageName).hasAppLock() } catch (e: Exception) { false }
-            val isHidden = try { sandboxManager.isPackageHidden(appInfo.packageName) ?: false } catch (e: Exception) { false }
-            val isSandboxed = try { sandboxManager.isPackageSandboxed(appInfo.packageName) ?: false } catch (e: Exception) { false }
-
-            AppInfo(
-                packageName = appInfo.packageName,
-                label = pm.getApplicationLabel(appInfo).toString(),
-                icon = pm.getApplicationIcon(appInfo),
-                uid = appInfo.uid,
-                isLocked = isLocked,
-                isHidden = isHidden,
-                isSandboxed = isSandboxed
-            )
-        }
 }
 
 private suspend fun toggleAppLock(context: Context, packageName: String, lock: Boolean) = withContext(Dispatchers.IO) {
