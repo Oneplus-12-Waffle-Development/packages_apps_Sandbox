@@ -24,7 +24,6 @@ import android.hardware.biometrics.BiometricPrompt
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.PowerManager
-import android.os.Process
 import android.os.SystemClock
 import android.os.UserHandle
 import android.view.WindowManager
@@ -53,9 +52,12 @@ class AuthenticateActivity : ComponentActivity() {
     private var userId: Int = 0
     private var isSystemUnlock: Boolean = false
 
+    private enum class AuthState { IDLE, PROMPT_SHOWING, EXITING, FINISHED }
+
     private var resultIntent: Intent? = null
     private var isAuthSuccess = false
     private var failedTime: Long = 0
+    private var authState: AuthState = AuthState.IDLE
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -183,9 +185,11 @@ class AuthenticateActivity : ComponentActivity() {
     }
 
     private fun unlockAndFinish() {
-        packageName?.let { pkg ->
-            val sandboxManager = getSystemService(Context.AX_SANDBOX_SERVICE) as? AxSandboxManager
-            sandboxManager?.unlockApp(pkg, userId)
+        if (authState == AuthState.FINISHED || isFinishing) return
+        authState = AuthState.FINISHED
+        if (packageName != null) {
+            (getSystemService(Context.AX_SANDBOX_SERVICE) as? AxSandboxManager)
+                ?.unlockApp(packageName!!, userId)
         }
         resultIntent?.apply {
             putExtra(EXTRA_LOCKED_PACKAGE, packageName)
@@ -193,51 +197,45 @@ class AuthenticateActivity : ComponentActivity() {
         }
         setResult(Activity.RESULT_OK, resultIntent)
         isAuthSuccess = true
-
         finish()
-        Process.killProcess(Process.myPid())
     }
 
     private fun cancelAndFinish() {
+        if (authState == AuthState.FINISHED || isFinishing) return
+        authState = AuthState.FINISHED
         resultIntent?.apply {
             putExtra(EXTRA_LOCKED_PACKAGE, packageName)
             putExtra(EXTRA_LOCKED_UID, userId)
         }
         setResult(Activity.RESULT_CANCELED, resultIntent)
-
         failedTime = SystemClock.elapsedRealtime()
-
         moveTaskToBack(true)
-
         val homeIntent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_HOME)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         startActivity(homeIntent)
-
-        finishAndCleanup()
+        finish()
     }
 
     override fun onPause() {
         super.onPause()
-        finishAndCleanup()
+        if (authState != AuthState.FINISHED) {
+            cancelAndFinish()
+        }
     }
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        finishAndCleanup()
-    }
-
-    private fun finishAndCleanup() {
-        finish()
-        Process.killProcess(Process.myPid())
+        if (authState == AuthState.IDLE) {
+            cancelAndFinish()
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
 
         if (hasFocus && isAuthSuccess) {
-            finishAndCleanup()
             isAuthSuccess = false
             return
         }
@@ -253,7 +251,7 @@ class AuthenticateActivity : ComponentActivity() {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     startActivity(this)
                 }
-                finishAndCleanup()
+                finish()
             }
         }
     }
