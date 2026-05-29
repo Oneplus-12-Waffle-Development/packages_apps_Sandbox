@@ -310,7 +310,10 @@ fun SandboxNavigation(
                         onBack = { currentScreen = SandboxScreen.MAIN },
                         onForgotPassword = if (securityManager.hasSecurityQuestion()) {
                             { currentScreen = SandboxScreen.FORGOT_PASSWORD }
-                        } else null
+                        } else null,
+                        requestInitialFocus = !currentPreferBiometric ||
+                            !currentBiometricEnabled ||
+                            !securityManager.isBiometricAvailable()
                     )
                 }
                 SecurityType.PATTERN -> {

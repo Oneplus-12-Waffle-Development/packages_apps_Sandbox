@@ -51,11 +51,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -66,7 +71,7 @@ import androidx.compose.ui.unit.dp
 import com.android.axion.sandbox.R
 import com.android.axion.sandbox.security.SandboxSecurityManager
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun PasswordScreen(
     isSetup: Boolean = false,
@@ -78,16 +83,26 @@ fun PasswordScreen(
     biometricType: SandboxSecurityManager.BiometricType = SandboxSecurityManager.BiometricType.NONE,
     onBiometricClick: () -> Unit = {},
     onForgotPassword: (() -> Unit)? = null,
-    isExiting: Boolean = false
+    isExiting: Boolean = false,
+    requestInitialFocus: Boolean = true
 ) {
     var enteredPassword by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
     val motionScheme = MaterialTheme.motionScheme
     val errorMismatch = stringResource(R.string.password_error_mismatch)
     val errorIncorrect = stringResource(R.string.password_error_incorrect)
+
+    LaunchedEffect(requestInitialFocus) {
+        if (requestInitialFocus) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
 
     LaunchedEffect(confirmPassword) {
         enteredPassword = ""
@@ -165,6 +180,10 @@ fun PasswordScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .onFocusChanged {
+                        if (it.isFocused) keyboardController?.show()
+                    }
                     .graphicsLayer { translationX = shakeTranslation },
                 label = { Text(stringResource(R.string.password_label)) },
                 placeholder = { Text(stringResource(R.string.password_placeholder)) },

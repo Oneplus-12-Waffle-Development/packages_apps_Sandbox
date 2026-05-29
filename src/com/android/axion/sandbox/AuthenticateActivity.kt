@@ -175,8 +175,6 @@ class AuthenticateActivity : ComponentActivity() {
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
             )
 
-            addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
-
             attributes = attributes?.apply {
                 privateFlags = privateFlags or
                     WindowManager.LayoutParams.SYSTEM_FLAG_SHOW_FOR_ALL_USERS
@@ -310,7 +308,9 @@ fun AuthenticateScreen(
                 onPasswordEntered = { password -> securityManager.verifyCredential(password) },
                 onBack = onCancel,
                 biometricType = biometricType,
-                onBiometricClick = onBiometricClick
+                onBiometricClick = onBiometricClick,
+                requestInitialFocus = biometricType == SandboxSecurityManager.BiometricType.NONE ||
+                    !isPreferBiometric
             )
         }
         SecurityType.PATTERN -> {
