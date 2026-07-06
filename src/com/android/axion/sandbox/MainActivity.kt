@@ -15,6 +15,7 @@
  */
 package com.android.axion.sandbox
 
+import android.content.Intent
 import android.hardware.biometrics.BiometricManager
 import android.hardware.biometrics.BiometricPrompt
 import android.os.Bundle
@@ -61,7 +62,12 @@ import com.android.axion.sandbox.ui.SettingsScreen
 import com.android.axion.sandbox.ui.theme.SandboxTheme
 import kotlinx.coroutines.launch
 
+private const val EXTRA_OPEN_TAB = "com.android.axion.sandbox.extra.OPEN_TAB"
+
 class MainActivity : ComponentActivity() {
+
+    private val requestedTab = mutableStateOf(0)
+    private val tabRequestNonce = mutableStateOf(0)
 
     private lateinit var securityManager: SandboxSecurityManager
     private lateinit var backupManager: BackupManager
@@ -100,6 +106,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        applyTabIntent(intent)
+
         securityManager = SandboxSecurityManager(this)
         backupManager = BackupManager(this)
         VaultAccessController.lock(this)
@@ -112,6 +120,8 @@ class MainActivity : ComponentActivity() {
                 ) {
                     SandboxNavigation(
                         securityManager = securityManager,
+                        requestedTab = requestedTab.value,
+                        tabRequestNonce = tabRequestNonce.value,
                         onShowBiometricPrompt = { onSuccess ->
                             showBiometricPrompt(onSuccess)
                         },
@@ -124,6 +134,20 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        applyTabIntent(intent)
+    }
+
+    private fun applyTabIntent(intent: Intent?) {
+        val tab = intent?.getIntExtra(EXTRA_OPEN_TAB, -1) ?: -1
+        if (tab in 0..2) {
+            requestedTab.value = tab
+            tabRequestNonce.value += 1
         }
     }
 
@@ -166,6 +190,8 @@ enum class SandboxScreen {
 @Composable
 fun SandboxNavigation(
     securityManager: SandboxSecurityManager,
+    requestedTab: Int = 0,
+    tabRequestNonce: Int = 0,
     onShowBiometricPrompt: (() -> Unit) -> Unit,
     onBackupAppList: () -> Unit,
     onRestoreAppList: () -> Unit
@@ -184,7 +210,11 @@ fun SandboxNavigation(
 
     var isPrivateUnlocked by rememberSaveable { mutableStateOf(false) }
     var isPrivateAreaExpanded by rememberSaveable { mutableStateOf(false) }
-    var selectedTabIndex by rememberSaveable { mutableStateOf(0) }
+    var selectedTabIndex by rememberSaveable { mutableStateOf(requestedTab) }
+
+    LaunchedEffect(tabRequestNonce) {
+        if (tabRequestNonce > 0) selectedTabIndex = requestedTab
+    }
     var isPickingFiles by rememberSaveable { mutableStateOf(false) }
     var lastPauseTime by rememberSaveable { mutableStateOf(0L) }
 

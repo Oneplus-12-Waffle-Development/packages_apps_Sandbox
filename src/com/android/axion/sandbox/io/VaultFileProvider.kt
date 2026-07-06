@@ -26,6 +26,7 @@ import android.net.Uri
 import android.os.Binder
 import android.os.Bundle
 import android.os.ParcelFileDescriptor
+import android.os.Process
 import android.provider.BaseColumns
 import android.provider.MediaStore
 import android.provider.OpenableColumns
@@ -203,8 +204,48 @@ class VaultFileProvider : ContentProvider() {
         return type
     }
 
+    override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
+        val context = context ?: return null
+        val callerUid = Binder.getCallingUid()
+        val callerPkg = try { callingPackage } catch (e: SecurityException) { null }
+        val allowed = callerUid == Process.SYSTEM_UID ||
+            callerUid == Process.myUid() ||
+            callerUid == Process.SHELL_UID ||
+            callerUid == Process.ROOT_UID ||
+            callerPkg == SAFEBOX_SHIM_PKG
+        if (!allowed) {
+            Log.w(TAG, "call denied method=$method caller=${caller()}")
+            return null
+        }
+        return when (method) {
+            METHOD_IS_CONFIGURED -> Bundle().apply { putBoolean(KEY_RESULT, true) }
+            METHOD_IMPORT_FILE -> {
+                val uriStr = arg ?: extras?.getString(KEY_URI)
+                if (uriStr.isNullOrEmpty()) {
+                    Log.w(TAG, "importFile empty uri caller=${caller()}")
+                    Bundle().apply { putBoolean(KEY_RESULT, false) }
+                } else {
+                    val ok = try {
+                        FileVaultManager(context).importFile(Uri.parse(uriStr))
+                    } catch (e: Exception) {
+                        Log.w(TAG, "importFile failed uri=$uriStr caller=${caller()}", e)
+                        false
+                    }
+                    Log.i(TAG, "importFile caller=${caller()} uri=$uriStr ok=$ok")
+                    Bundle().apply { putBoolean(KEY_RESULT, ok) }
+                }
+            }
+            else -> null
+        }
+    }
+
     private companion object {
         private const val TAG = "VaultFileProvider"
+        private const val SAFEBOX_SHIM_PKG = "com.oplus.encryption"
+        private const val METHOD_IMPORT_FILE = "importFile"
+        private const val METHOD_IS_CONFIGURED = "isConfigured"
+        private const val KEY_URI = "uri"
+        private const val KEY_RESULT = "result"
     }
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? = null
